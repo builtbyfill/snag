@@ -1,0 +1,22 @@
+# Slice 3: Postgres only. The migrate and app services arrive in slice 5.
+# Local dev: `docker compose up -d db`, then run Next on the host with `npm run dev`.
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: snag
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: snag
+    volumes:
+      - db_data:/var/lib/postgresql          # Postgres 18: PGDATA is /var/lib/postgresql/18/docker
+    ports:
+      - "127.0.0.1:5433:5432"                # host dev only (5433: another local project uses 5432); this machine only, not the LAN
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snag -d snag"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  db_data:

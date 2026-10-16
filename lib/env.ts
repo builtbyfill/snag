@@ -27,3 +27,24 @@ function parse<T extends z.ZodType>(schema: T, source: Source): z.infer<T> {
 export function readExtractionEnv(source: Source = process.env): ExtractionEnv {
   return parse(ExtractionEnv, source);
 }
+
+const DatabaseEnv = z.object({
+  DATABASE_URL: notPlaceholder(z.string({ error: 'is required' }).min(1, 'is required')),
+});
+export type DatabaseEnv = z.infer<typeof DatabaseEnv>;
+
+export function readDatabaseEnv(source: Source = process.env): DatabaseEnv {
+  return parse(DatabaseEnv, source);
+}
+
+const ReportEnv = z.object({
+  // HMAC key for reporter IP hashes only (one key, one purpose).
+  IP_HASH_SECRET: notPlaceholder(z.string({ error: 'is required' }).min(32, 'must be at least 32 characters')),
+  UPLOAD_DIR: z.string().min(1).default('./.uploads'),
+});
+export type ReportEnv = z.infer<typeof ReportEnv>;
+
+/** Variables the public report path needs: IP hashing and the uploads folder. */
+export function readReportEnv(source: Source = process.env): ReportEnv {
+  return parse(ReportEnv, source);
+}

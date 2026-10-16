@@ -133,15 +133,18 @@ Source: `scope.md > The POC Boundary` (seed-created projects, slug).
 - No create, rename, or regenerate in the PoC (deferred).
 
 ### Reporting a problem (client page)
+
+**Language (Filip, 2026-10-17):** the client page is in **Bosnian** by default: labels, hints, button, errors and the confirmation. The English strings below are the reference meaning; the shipped words live in `lib/i18n/client-copy.ts` with a complete English set kept ready for later. The dashboard stays English.
+
 Source: `scope.md > The Core Loop`, `scope.md > The POC Boundary` (client report, save first).
 
 - Page heading is the project name; subheading "Report a problem".
 - Screenshot area, empty: dashed border, image icon, "Add a screenshot", secondary line on phones "Tap to choose from your photos or take one", on desktop "Drop a screenshot here or click to choose". Tapping opens the native picker; the area also accepts drag and drop and paste from the clipboard on desktop.
 - Screenshot area, chosen: the image preview fills the area at its aspect ratio, with a small **Replace** button in the corner. One image only; choosing another replaces it.
 - Rejections appear inline under the area, immediately, before sending: "Choose a PNG, JPG or WebP image." or "Choose an image under 5 MB." The area stays empty.
-- Field "What happened?" with description "One sentence is enough." and placeholder `Kliknula sam Sačuvaj na terminu i ništa se nije desilo.` Required, minimum 10 characters. Validation runs on blur and on send, never while typing the first characters: "Write at least 10 characters about what happened." shown under the field.
+- Field "What happened?" with description "One sentence is enough." and placeholder `npr. Kliknula sam Sačuvaj na terminu i ništa se nije desilo.`, visibly lighter than typed text Required, minimum 10 characters. Validation runs on blur and on send, never while typing the first characters: "Write at least 10 characters about what happened." shown under the field.
 - Sending with no screenshot: "Add a screenshot before sending." under the area; focus moves there.
-- **Send report**: disabled until both a valid image and a valid sentence exist. On tap it reads "Sending…" with a spinner and the form locks. The request is complete when the image and sentence are saved; it does not wait for AI.
+- **Send report**: always looks active; tapping it while the screenshot or sentence is missing shows the hints and moves focus (Filip, 2026-10-17). Under it, one reassuring line: "Bez registracije. Javićemo vam se na WhatsApp ako trebamo više informacija." On tap it reads "Sending…" with a spinner and the form locks. The request is complete when the image and sentence are saved; it does not wait for AI.
 - Confirmation state replaces the form: the screenshot and sentence shown as a sent message with a check mark, heading "Received. Your developer will take a look.", line "You can close this page.", a quiet link "Send another report", and the small line "Sent with Snag". No AI mention, no spinner, no ticket fields.
 - Rate limit hit (more than 10 reports from one address in an hour): the form stays, inline message above the button "Too many reports from this device in the last hour. Try again later."
 - Network or server failure: the form stays with everything the client typed; inline message "Couldn't send the report. Check your connection and try again." The button returns to "Send report".
@@ -248,6 +251,7 @@ Decisions carried from `scope.md` (grilling, 2026-10-15) and approved by Filip a
 - **Native picker instead of forced camera** — screenshots live in the gallery; `capture` would hide it.
 - **Base UI variant of shadcn/ui, Radix fallback** — approved; recorded as a spec decision so `4-spec` verifies the catalog before writing install steps.
 - **Kibo UI Dropzone via the shadcn registry + shadcn Attachment** — approved; the one component outside shadcn core, because core has no upload component.
+- **Client page in Bosnian, English ready** (2026-10-17) — Filip's clients are local; one copy file per language, Bosnian default, no language switcher.
 - **Confidence shown as a number in detail** — Filip wants to learn how self-reported confidence behaves; showing it costs nothing and feeds the eval decision rule.
 
 ## What We're Building
@@ -291,7 +295,7 @@ Source: `scope.md > Explicitly Cut`, `scope.md > Later`.
 - Ticket text in the client's language. English fields, verbatim sentence.
 - Per-field confidence.
 - Any AI wording, spinner, or error on the client page.
-- Jira or GitHub integration, comments, email notifications, multi-language UI.
+- Jira or GitHub integration, comments, email notifications, a multi-language UI with a language switcher. (The client page ships in Bosnian; that is one language, not a switcher.)
 - Colored priority or status. The color map is reserved.
 - Page-load animations, hover effects on every row, decorative gradients or shadows.
 

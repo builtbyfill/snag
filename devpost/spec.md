@@ -116,7 +116,6 @@ IP_HASH_SECRET=               # 32+ random bytes; HMAC key for reporter IP hashe
 POSTGRES_PASSWORD=            # used by db, migrate and app
 APP_URL=http://localhost:3000 # what Copy report link copies; https:// turns on the secure cookie
 APP_BIND=0.0.0.0              # 127.0.0.1 on the server (Caddy in front)
-TRUST_PROXY=false             # true on the server: read client IP from x-forwarded-for
 DATABASE_URL=postgres://snag:<password>@localhost:5432/snag   # host dev only; Compose overrides with host "db"
 UPLOAD_DIR=./.uploads         # host dev only; Compose sets /data/uploads
 EXTRACTION_MODEL=claude-sonnet-5-5
@@ -528,8 +527,8 @@ Pass 6, `vibesec-skill`, applied to the four areas Filip named. Each line is a b
 **Public report route (`/r/<slug>`, `submitReportAction`)**
 - [ ] Slug lookup only; unknown slug → `notFound()`. No listing of projects anywhere public.
 - [ ] Rate limit: count of `tickets` with this `reporter_ip_hash` in the last hour ≥ 10 → reject with the PRD message. Checked **before** writing the file.
-- [ ] Client IP: first value of `x-forwarded-for` when `TRUST_PROXY=true` (server behind Caddy), else the socket address. Never trust the header locally.
-- [ ] Size: reject > 5 MB server-side regardless of the browser check. `serverActions.bodySizeLimit: '6mb'` in `next.config.ts` (**verify in build**: exact config key on Next 16). Caddy on the server gets `request_body { max_size 6MB }`.
+- [ ] Client IP: first value of `x-forwarded-for`. Behind Caddy, Caddy overwrites the header with the real client address. Locally Next fills it from the socket only when the client sent none, so a client on the same network could spoof it; accepted for local use (Filip, 2026-10-16), since a server action cannot read the socket and deploys always sit behind Caddy.
+- [ ] Size: reject > 5 MB server-side regardless of the browser check. `experimental.serverActions.bodySizeLimit: '6mb'` in `next.config.ts` (**verified** on Next 16.4). Caddy on the server gets `request_body { max_size 6MB }`.
 - [ ] Type: MIME from the browser is ignored; `sharp(buffer).metadata().format` must be `png | jpeg | webp`, else reject with the PRD message. SVG and GIF are therefore impossible to store.
 - [ ] Dimensions: reject > 8000 px on either edge (API hard limit) with the "under 5 MB" message's sibling: "Choose a smaller image."
 - [ ] Path traversal: storage key is `${projectId}/${ticketId}.${ext}` built from UUIDs and the sniffed format; client file name never read. `LocalDiskStorage` asserts the resolved path starts with `UPLOAD_DIR`.
@@ -635,7 +634,7 @@ volumes:
 - **What to back up.** The two volumes and `.env`. Database: `docker compose exec db pg_dump -U snag snag | gzip > snag-$(date +%F).sql.gz`. Uploads: `docker run --rm -v snag_uploads:/u -v $PWD:/b alpine tar czf /b/uploads-$(date +%F).tgz -C /u .`. Restore is `psql` + `tar xzf` into fresh volumes. For the hackathon a manual dump before the video is enough; a cron line is a post-hackathon item.
 - **Graceful shutdown.** `docker compose stop` sends `SIGTERM` and waits 10 s by default; Next finishes in-flight requests and pending `after()` callbacks (**verified**). Set `stop_grace_period: 30s` on `app` so a 60 s extraction attempt is not cut off at 10 s.
 
-**What differs on the server.** Same file. Values in `.env`: `APP_URL=https://snag.<domain>` (turns on the `secure` cookie), `APP_BIND=127.0.0.1` (Caddy is the only thing that reaches port 3000), `TRUST_PROXY=true`, and of course different secrets. Caddy gets one site block: `reverse_proxy 127.0.0.1:3000` plus the request body limit. That is the "copy and two env vars" promised in scope (three, counting `TRUST_PROXY`).
+**What differs on the server.** Same file. Values in `.env`: `APP_URL=https://snag.<domain>` (turns on the `secure` cookie), `APP_BIND=127.0.0.1` (Caddy is the only thing that reaches port 3000), and of course different secrets. Caddy gets one site block: `reverse_proxy 127.0.0.1:3000` plus the request body limit. That is the "copy and two env vars" promised in scope.
 
 **Local development** keeps `docker compose up -d db` and `npm run dev` on the host (`DATABASE_URL=postgres://snag:…@localhost:5432/snag`, `UPLOAD_DIR=./.uploads`, git-ignored) so hot reload works.
 

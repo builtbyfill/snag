@@ -35,3 +35,28 @@ describe('readExtractionEnv', () => {
     }
   });
 });
+
+describe('readDatabaseEnv', () => {
+  it('requires DATABASE_URL and rejects the placeholder inside it', async () => {
+    const { readDatabaseEnv } = await import('@/lib/env');
+    expect(() => readDatabaseEnv({})).toThrow(/DATABASE_URL: is required/);
+    expect(() => readDatabaseEnv({ DATABASE_URL: 'postgres://snag:replace-with-a-postgres-password@localhost:5433/snag' }))
+      .toThrow(/DATABASE_URL: still holds the placeholder/);
+    expect(readDatabaseEnv({ DATABASE_URL: 'postgres://snag:pw@localhost:5433/snag' }).DATABASE_URL).toContain('5433');
+  });
+});
+
+describe('readReportEnv', () => {
+  const SECRET = 'a'.repeat(44);
+
+  it('defaults the uploads folder', async () => {
+    const { readReportEnv } = await import('@/lib/env');
+    expect(readReportEnv({ IP_HASH_SECRET: SECRET })).toEqual({ IP_HASH_SECRET: SECRET, UPLOAD_DIR: './.uploads' });
+  });
+
+  it('rejects a short or placeholder IP_HASH_SECRET', async () => {
+    const { readReportEnv } = await import('@/lib/env');
+    expect(() => readReportEnv({ IP_HASH_SECRET: 'short' })).toThrow(/IP_HASH_SECRET/);
+    expect(() => readReportEnv({ IP_HASH_SECRET: 'replace-with-32-random-bytes-xxxxxxxxxxxx' })).toThrow(/placeholder/);
+  });
+});

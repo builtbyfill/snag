@@ -14,5 +14,8 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',
+    globalSetup: ['tests/setup/test-database.ts'],
+    // DB-backed test files share snag_test and truncate it, so files run one at a time.
+    fileParallelism: false,
   },
 });
