@@ -1,0 +1,8 @@
+[
+  {
+    "id": "001",
+    "image": "images/001.png",
+    "sentence": "Ne mogu zakazati, crveno mi piše kad kliknem dalje.",
+    "notes": "Medic+ booking form (local app, synthetic data), mobile, step \"Podaci\" after Nastavi with empty fields. The red required-field errors are correct behavior; the real bug is the consent checkbox label hidden behind the sticky Nazad/Nastavi buttons. A good extraction must not invent a server error."
+  }
+]

@@ -5,11 +5,11 @@ status: approved
 
 # Build Checklist
 
-Build mode: learn — Filip's instruction for this build: one slice at a time, explain what changed and how to try it, then stop and wait for his OK. Commits happen only after Filip approves each one (his standing rule overrides the skill's automatic commit).
+Build mode: learn — Filip's instruction for this build: one slice at a time, explain what changed and how to try it, then stop and wait for his OK. Filip runs all git himself (staging, commits, push); after each slice the agent lists the files that belong in the commit and suggests the message (his standing rule overrides the skill's automatic commit).
 
 ## Slices
 
-- [ ] **1. One screenshot becomes a structured ticket in the terminal**
+- [x] **1. One screenshot becomes a structured ticket in the terminal**
   Becomes usable: `npm run eval -- --only 001` sends one local screenshot and sentence to Claude and prints the validated ticket: observed fields, inferred fields with evidence or `null`, confidence, language, and every attempt with its token usage.
   Why now: This is the unique kernel and the largest unknown (`zodOutputFormat` with Zod 4, adaptive thinking on `claude-sonnet-5-5`, `parsed_output`, `sharp` downscale). If the observed/inferred split doesn't hold up, everything after it changes, so we find out before writing any UI. The project scaffold goes here because this slice is the first thing that needs it.
   PRD ref: `prd.md > Features and Behavior` (Reading the screenshot)
