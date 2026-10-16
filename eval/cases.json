@@ -3,6 +3,17 @@
     "id": "001",
     "image": "images/001.png",
     "sentence": "Ne mogu zakazati, crveno mi piše kad kliknem dalje.",
-    "notes": "Medic+ booking form (local app, synthetic data), mobile, step \"Podaci\" after Nastavi with empty fields. The red required-field errors are correct behavior; the real bug is the consent checkbox label hidden behind the sticky Nazad/Nastavi buttons. A good extraction must not invent a server error."
+    "author": "friend, non-technical, Bosnian",
+    "nonTechnicalAuthor": true,
+    "reference": {
+      "title": { "mustMention": [["details", "Podaci"], ["empty", "not filled", "placeholder"]] },
+      "location": { "accept": ["Podaci", "details step"] },
+      "actualResult": { "mustMention": ["consent"], "nullable": false },
+      "priority": "medium",
+      "tags": { "anyOf": ["form", "booking", "layout", "validation"] },
+      "expectedResult": { "mustMention": [], "orNull": true },
+      "stepsToReproduce": null
+    },
+    "notes": "Medic+ booking form (local app, synthetic data), mobile, step \"Podaci\" after Nastavi with empty fields. The friend looked at the screenshot and wrote the sentence without being told the problem. The red required-field errors are correct behavior (the fields look empty), so this is not a booking bug; the real bug is the consent checkbox label hidden behind the sticky Nazad/Nastavi buttons. A good extraction must not invent a server error. Ideal title, per Filip: \"Client blocked on details step, fields appear empty\". Expected result may be null or inferred: the client didn't say what they expected; the invented-fields check covers made-up values. Steps are not inferable. Pattern to watch across cases: the model treats a user mistake (empty fields) as a bug, in the title and with high priority."
   }
 ]

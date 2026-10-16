@@ -32,6 +32,8 @@ export type PolicyInput = {
 export const MAX_TOKENS = 8192; // adaptive thinking counts against this; the JSON itself is ~500 tokens
 export const TIMEOUT_MS = 60_000;
 export const RETRY_DELAY_MS = 4_000;
+/** Start of an attempt's error when the answer failed JSON parse or Zod validation. */
+export const VALIDATION_ERROR_PREFIX = 'Answer did not pass validation:';
 
 // What one call ended in, and whether the policy allows a second attempt after it.
 type Step =
@@ -112,6 +114,6 @@ async function call(input: PolicyInput, n: number, req: ProviderRequest): Promis
   if (parsed.ok) {
     return { kind: 'ok', output: parsed.output, attempt: record({ result: 'succeeded', parsed: parsed.output, error: null }) };
   }
-  const error = `Answer did not pass validation:\n${parsed.issues.join('\n')}`;
+  const error = `${VALIDATION_ERROR_PREFIX}\n${parsed.issues.join('\n')}`;
   return { kind: 'invalid', text, issues: parsed.issues, attempt: record({ result: 'failed', parsed: null, error }) };
 }

@@ -19,7 +19,7 @@ Build mode: learn — Filip's instruction for this build: one slice at a time, e
   Learner check: Put one test-environment screenshot (no real client data) in `eval/images/`, write case `001` with a sentence in `eval/cases.json`, run `npm run eval -- --only 001`, and read the output. Do the observed fields describe what's visible? Are the inferred fields null where the screenshot can't support them?
   Commit: `Add extraction module and single-case eval run`
 
-- [ ] **2. The eval runner scores extractions against reference tickets**
+- [x] **2. The eval runner scores extractions against reference tickets**
   Becomes usable: `npm run eval` prints the per-field match table, accepted/invented counts, Zod retries used, mean confidence and the confidence check. It writes `eval/results/<timestamp>.json` and supports `--review`, `--runs N` and manual overrides in `eval/verdicts.json`.
   Why now: Scope's success bar ("below 50% means the prompt strategy or the product needs to change, and we want to know that on day one") makes this the second risk. With the runner in place, Filip can collect real-style cases while the app gets built.
   PRD ref: `prd.md > What We're Building` (Eval runner and README numbers)
@@ -120,9 +120,15 @@ Edit outcome:
 Reflection:
 Activity mode:
 
+## Notes for 6-ship
+
+- **README, eval section (Filip, 2026-10-16):** the eval screenshots come from Filip's own apps with fake data only. Each client sentence was written by a real non-technical person (friends and family) role-playing a client, without being told what the problem was. These are role-played reports, not real client tickets, and Filip writes the reference tickets himself. Limitation to state: real client reports may be messier (blurry photos, wrong screens, mixed languages). The summary states how many cases have a real non-technical author (the runner prints it). Already reflected in `eval/README.md`.
+
 ## Revisions
 
 - Scaffold in a scratch folder and move it into the repo root instead of `npx create-next-app@latest snag` — the spec's command would create a nested `snag/` folder, and create-next-app refuses to scaffold into a folder that already holds `devpost/`, `.agents/` and `CONTEXT.md`.
 - `ClaudeProvider` sends `zodOutputFormat(ExtractionOutput)` through `messages.create()` and returns the raw text; `policy.ts` does JSON parse → normalize → `ExtractionOutput.safeParse` — in `@anthropic-ai/sdk` 0.135 `messages.parse()` throws an `AnthropicError` on Zod failure instead of returning `parsed_output: null`, and it validates before normalization, so enum casing ("High") would fail instead of being normalized.
+- Eval `location` matches when the model's value **contains** an accepted string (case-insensitive, whitespace collapsed) — the spec's "normalized value is in `accept`" read as exact equality would almost never match free-text locations such as `Zakažite termin dialog, step 3 "Podaci" (Vaši podaci)`.
+- Eval cases carry a required `author` plus `nonTechnicalAuthor: true|false`, and the summary counts real non-technical authors; `mustMention` entries accept synonym lists — Filip's slice-2 review: the README claim depends on authorship, and keyword-only title matching was too strict for equivalent wording ("Podaci" for "details").
 - Slice 7 seed images come from a fictional demo page captured with Playwright (new dev dependency, Filip's decision) — Filip has no app screenshots that are free of client data, so the spec's "test-environment screenshots" are generated instead.
 - `.env.example` uses obvious placeholders for secrets and working defaults for non-secret values; `lib/env.ts` refuses to start while a placeholder is left in — Filip's instruction for this build, replacing the spec's "every value empty".
