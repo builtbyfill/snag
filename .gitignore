@@ -1,0 +1,32 @@
+# Personal learning context (Devpost Learn)
+/devpost/learner-profile.md
+
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# Eval material stays local (may show real apps); only cases.json, verdicts.json and README are committed
+/eval/images/
+/eval/results/
+
+# Seed images: only files explicitly named synthetic-* may be committed
+/seed/images/*
+!/seed/images/synthetic-*
+!/seed/images/README.md
+
+# Uploaded screenshots in local dev
+/.uploads/
+
+# From create-next-app (its ".env*" rule is replaced by the credential rules above)
+/node_modules
+/coverage
+/.next/
+/out/
+/build
+.DS_Store
+*.pem
+npm-debug.log*
+*.tsbuildinfo
+next-env.d.ts
+.vercel
