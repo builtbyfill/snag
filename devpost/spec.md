@@ -31,12 +31,12 @@ PRD ref: `prd.md > The Core Journey`.
 
 1. **Seed.** `npm run seed` inserts the project "Clinic booking" with a fixed 21-character slug, three seed tickets (one `extracted` with evidence, one `extracted` that triggers **Ask client**, one `extraction_failed` with a stored error) and their fake screenshots copied from `seed/images/` into the uploads folder. Idempotent: re-running updates by slug.
 2. **Login.** `/login` posts the access code to `loginAction`. It compares against `ADMIN_SECRET` in constant time, counts failures per IP in memory, and on success sets the `snag_session` cookie (30 days, signed with `SESSION_SECRET`) and redirects to `/dashboard`.
-3. **Copy report link.** The dashboard shell lists projects; the client component copies `${APP_URL}/r/${slug}` to the clipboard. No server call.
-4. **Client opens `/r/<slug>`.** A server component looks up the project by slug (404 if none) and renders the form. The Dropzone validates type and size in the browser first; the sentence validates on blur.
+3. **Copy report link.** The chat header of the selected project shows the link; the client component copies `${APP_URL}/r/${slug}` to the clipboard. No server call.
+4. **Client opens `/r/<slug>`.** A server component looks up the project by slug (404 if none) and renders the client portal with `DEVELOPER_NAME` and `DEVELOPER_EMAIL`. The client component reads this device's history from `localStorage` and calls `getReportStatusesAction(slug, ids)` for the statuses of those ids only. A chosen image is prepared in the browser first (shrunk when large); the sentence validates on send.
 5. **Send.** `submitReportAction(formData)` runs on the server: Zod-validates the sentence, sniffs the image with `sharp` (format must be png/jpeg/webp, reads width/height), checks the per-IP hourly count in `tickets`, writes the file through the storage module, inserts `tickets` + `attachments` in one transaction, and returns `{ ok: true }`. Then it calls `after(() => runExtraction(ticketId))`.
-6. **Confirmation.** The client component swaps the form for the "sent message" state using the preview it already has. Nothing waits on AI.
+6. **Confirmation.** The action returns `{ ok: true, ticketId }`. The client appends `{ ticketId, sentence, thumbnail, sentAt }` to this device's history and opens the new report (her message, "Received" with the time). Nothing waits on AI.
 7. **Extraction in the background.** `runExtraction` loads the ticket and the file, calls `extractTicket({ image, mimeType, sentence })`, which downsizes, prompts, parses, validates and retries per policy. Each attempt becomes an `extractions` row. On success the ticket's empty columns are filled, `extraction_state` becomes `extracted`; on final failure it becomes `extraction_failed` with `extraction_error`.
-8. **Dashboard list.** `/dashboard?project=…&extraction=…&status=…` is a server component querying `tickets` with the filters. A small client component calls `router.refresh()` every 3 seconds while any visible row is `pending`.
+8. **Dashboard chats.** `/dashboard?project=…&extraction=…&status=…` is a server component: `listChats()` for the left column, `listThread()` for the selected project's messages and cards with the filters. A small client component calls `router.refresh()` every 3 seconds while any visible card is `pending`.
 9. **Detail.** `/dashboard/tickets/<id>` renders the source column (image via `/dashboard/images/<ticketId>`) and the field column. Each field saves on blur through `updateTicketFieldAction(id, field, value)`, which whitelists the field name. Status and Priority use the same action. **Retry extraction** calls `retryExtractionAction(id)`, which sets `pending` and schedules `runExtraction` with `after()` again.
 10. **Copy as Markdown.** `ticketToMarkdown(ticket)` runs on the server during render and is passed to the client button, which writes it to the clipboard. The `c` key triggers the same button.
 
@@ -67,7 +67,7 @@ All of these are Filip's decisions from the brief and scope; versions and facts 
 | Framework | Next.js 16 (App Router, TypeScript, Node runtime) | `after()` stable since 15.1 and "fully supported when self-hosting with `next start`" (**verified**, [after](https://nextjs.org/docs/app/api-reference/functions/after), [self-hosting › after](https://nextjs.org/docs/app/guides/self-hosting#after)). Next 16 renamed `middleware.ts` to `proxy.ts` (**verify in build** on the installed version). |
 | Styling | Tailwind v4 | Default in `create-next-app`. Tokens from `prd.md > Look and Feel` become CSS variables in `app/globals.css` via `@theme`. |
 | Components | shadcn/ui, **Base UI** variant | Catalog check done, see **Install Steps**. [shadcn CLI](https://ui.shadcn.com/docs/cli). |
-| Upload UI | Kibo UI Dropzone via shadcn registry | Registry item depends only on `react-dropzone`, `lucide-react` and shadcn `button`; no Radix or Base UI import, so it is variant-agnostic (**verified**, [registry JSON](https://www.kibo-ui.com/r/dropzone.json)). |
+| Upload UI | `react-dropzone` directly (slice 3a; the Kibo UI Dropzone from slice 3 is removed) | `useDropzone` gives the page-wide drop target and `open()` for the screenshot area; no Radix or Base UI import. |
 | Database | Postgres 18 (`postgres:18-alpine`) + Drizzle ORM + `drizzle-kit` + `pg` | Postgres 18 is the current `latest` tag; its data directory moved to `/var/lib/postgresql/18/docker` and the volume mounts at `/var/lib/postgresql` (**verified**, [Docker Hub](https://hub.docker.com/_/postgres)). [Drizzle migrations](https://orm.drizzle.team/docs/migrations), [drizzle-kit check](https://orm.drizzle.team/docs/drizzle-kit-check). |
 | AI | `@anthropic-ai/sdk`, model `claude-sonnet-5-5` (env `EXTRACTION_MODEL`) | Structured outputs are GA through `output_config.format` with the `zodOutputFormat` helper and `client.messages.parse()` (**verified**, [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), [TS SDK](https://platform.claude.com/docs/en/api/sdks/typescript)). See **Model note** below. |
 | Validation | Zod 4 | Same schema drives the API request format and the local parse. |
@@ -116,10 +116,12 @@ IP_HASH_SECRET=               # 32+ random bytes; HMAC key for reporter IP hashe
 POSTGRES_PASSWORD=            # used by db, migrate and app
 APP_URL=http://localhost:3000 # what Copy report link copies; https:// turns on the secure cookie
 APP_BIND=0.0.0.0              # 127.0.0.1 on the server (Caddy in front)
-DATABASE_URL=postgres://snag:<password>@localhost:5432/snag   # host dev only; Compose overrides with host "db"
+DATABASE_URL=postgres://snag:<password>@localhost:5433/snag   # host dev only; Compose overrides with host "db"
 UPLOAD_DIR=./.uploads         # host dev only; Compose sets /data/uploads
 EXTRACTION_MODEL=claude-sonnet-5-5
 EXTRACTION_MAX_EDGE=1568
+DEVELOPER_NAME=              # optional; shown in the client header and on the Contact card
+DEVELOPER_EMAIL=             # optional; mail link on the client's Contact card
 ```
 
 **What to open for the demo video.** `http://localhost:3000/login` on the laptop, `http://<laptop-lan-ip>:3000/r/<slug>` on the phone (same Wi-Fi). Both URLs come from `APP_URL`; set it to the LAN address for the recording so **Copy report link** produces a URL the phone can open.
@@ -130,14 +132,71 @@ EXTRACTION_MAX_EDGE=1568
 
 ## Look and Feel
 
-Carried from `prd.md > Look and Feel` with no re-interview. Implementation notes for the build:
+From `prd.md > Look and Feel` (redesigned 2026-10-17: monochrome, piz-erp shell and type scale). Implementation notes:
 
-- **Fonts.** `next/font/google` for IBM Plex Sans (variable, `latin-ext` subset) and IBM Plex Mono (400 only). Exposed as `--font-sans` and `--font-mono`.
-- **Tokens.** Every hex in the PRD table becomes a CSS variable under `@theme` in `globals.css` (`--color-canvas`, `--color-ink`, `--color-ok-fill`, …) so Tailwind utilities like `bg-ok-fill text-ok-text` exist. shadcn's own `--primary`, `--border`, `--ring` etc. are mapped onto these; nothing in the PRD palette is left to shadcn defaults.
-- **Type scale.** Three utilities only: `text-title`, `text-body`, `text-meta`, defined once with the dashboard sizes; the client route's layout sets `data-surface="client"` on `<body>` and the two bumps (17/26, 14/20) are keyed off it.
-- **Badges.** `Badge` variants `extracted | pending | failed | ask-client`, each rendering a dot span + text. Status and priority render glyph + text with no color class.
-- **Motion.** One CSS transition on the client confirmation, wrapped in `@media (prefers-reduced-motion: no-preference)`. `Spinner` falls back to a static dot under reduced motion.
-- **Density.** List rows are `h-12` (48px) with 12px vertical padding; everything else uses the 8/16/24/32 scale as Tailwind spacing 2/4/6/8.
+- **Fonts.** `lib/fonts.ts`: `next/font/google` for IBM Plex Sans (variable, `latin` + `latin-ext`) and IBM Plex Mono (400 only), exposed as `--font-sans` and `--font-mono` and applied on `<html>` in the one root layout.
+- **Tokens.** Every hex in the PRD table is a CSS variable in `globals.css` and a Tailwind color through `@theme inline` (`bg-chrome`, `text-ink-muted`, `border-line-strong`, `bg-sunken`, `text-danger`, ...). shadcn's `--primary`, `--border`, `--ring` etc. are mapped onto them. The contrast figures are in the file header. Light only: the `dark` custom variant is kept so shadcn's `dark:` classes never follow the OS.
+- **Type scale.** Five utilities, `text-display`, `text-title`, `text-label`, `text-body`, `text-meta`, defined in `@theme`. `body` and `meta` read `--body-size` / `--meta-size`, which `[data-surface="client"]` bumps. `lib/utils.ts` builds `cn` with `createCn` and registers the five names as font sizes, otherwise `text-body` would be merged away as a color.
+- **Chrome.** Dark regions carry `data-surface="dark"`, which switches the focus outline to `chrome-fg`. The focus outline is unlayered CSS (`:focus-visible`, 2px, offset 2px) so a layered `outline-none` from a component can't hide it.
+- **Badges.** `Badge` variants `extracted | pending | failed | ask-client`: pending has a dashed border and spinner, failed is the one red, ask-client an outlined pill with an icon. Status and priority render glyph + text with no color class.
+- **Motion.** `--motion-fast` 120ms, `--motion-base` 160ms, `--ease-standard` `cubic-bezier(0.2, 0, 0, 1)`; transitions use `duration-(--motion-fast)`. One keyframe, `settle` (opacity + 4px rise, 160ms), only under `prefers-reduced-motion: no-preference`. Reduced motion turns transitions off and the spinner into a static dot.
+- **Density.** List rows have 12px vertical padding; everything else uses the 8/16/24/32 scale as Tailwind spacing 2/4/6/8. Client tap targets are at least 44px (`min-h-11`, `size-11`).
+
+## Chat Surfaces
+
+Filip's direction, 2026-10-17: Snag feels like a chat on both sides. The ticket detail (slice 8) is unchanged. PRD refs: `prd.md > Screens and Layout`, `prd.md > Reporting a problem`, `prd.md > Working the chats`.
+
+### Client portal `/r/<slug>` (slice 3a)
+
+Redesigned 2026-10-17 from a chat into a small portal (`prd.md > Screens and Layout`). Route group `app/(client)/` with a non-root `layout.tsx` (`data-surface="client"`, `robots: noindex`, viewport `themeColor` `#111214`). There is one root layout, `app/layout.tsx`, with `<html lang="en">`; the per-surface root layouts and `global-not-found.tsx` are gone because every page is English.
+
+**Files.** `page.tsx` (server: project by slug, `DEVELOPER_NAME`, `DEVELOPER_EMAIL` checked against a simple address pattern), `client-portal.tsx` (client: state, history, statuses, drop/paste, send, layout), `new-report.tsx`, `report-list.tsx`, `report-timeline.tsx`, `welcome-notes.tsx`, `not-found.tsx`. Shared: `components/snag-mark.tsx`, `components/status-glyph.tsx`, `components/date-tile.tsx`, `lib/reports/groups.ts` (`groupReports`: In progress = everything not done, an unknown status counts as open; `dateTile`). Copy: `lib/copy/client.ts` only.
+
+**Layout.** `h-dvh` flex column. The graphite bar (`data-surface="dark"`, 56px) holds the mark, project, developer name and response time. The workspace below is `canvas`; at 1024px and wider the page background is `chrome` and the workspace is inset (`mx-2 mb-2`, 16px radius, `chrome-line` border) with a 320px `aside` (notes on a first visit, otherwise the list) and a `main` that scrolls on its own (`scroll-pb-32` on phones keeps room for the pinned Send row). `main` shows `ReportTimeline` for the selected report or `NewReport`. Below 1024px, once history exists and the client isn't composing (`composing` state), `main` shows `ReportList asPage` instead of the form; "New report", a chosen, pasted or dropped screenshot all set `composing`. Choosing a screenshot always returns to `NewReport`.
+
+**New report.** Form with `noValidate` and `aria-busy` while sending. The screenshot area is a `<button>` that calls `react-dropzone`'s `open()`; `useDropzone({ noClick: true, noKeyboard: true })` on the page root makes the page a drop target, plus a `paste` listener. Chosen images go through `lib/reports/prepare-image.ts` (shrink to 2560 px JPEG when larger or heavier than 4 MB, 240 px thumbnail for the history). Chips render only while the sentence is empty; tapping one sets "<chip>: ", focuses the field synchronously (iOS opens the keyboard only for a focus inside the tap) and places the caret after the text on the next tick. Send checks `checkSentenceDetail(sentence, chips)` (browser only: after a chip, the rest must pass the 10-character rule). One `role="alert"` message at a time, rendered under the screenshot area or under the field it is about (scrolled into view with `block: "nearest"`), or above Send for form-level errors; a missing screenshot moves focus to the screenshot area. Remove puts focus back on the screenshot area. The draft sentence is kept in `snag:draft:v1:<slug>`. localStorage is read with `useSyncExternalStore` (`lib/use-stored-string.ts`) so hydration never mismatches.
+
+**Report timeline.** `article` with the status headline as `h1` (`tabIndex={-1}`; focused after a send and when a report opens on a phone, because the view that had focus is gone), one detail line, her message (`sunken` bubble, end-aligned, `animate-settle` only right after sending) with "Sent <date>" (`formatSentAt`: "today, 09:05", "16 Oct, 14:32", "30 Dec 2025, 08:00"), and an `<ol aria-label="Progress">` with all three steps (`aria-current="step"` on the current one). A persistent `role="status"` region in `ClientPortal`, outside the form/timeline swap, announces "Report sent." No reply box.
+
+**This device's history (`lib/reports/history.ts`, browser only).**
+- Key `snag:reports:v1:<slug>` in `localStorage`. Value: an array of `{ ticketId: uuid, sentence: string, thumb: string, sentAt: ISO string }`, oldest first, at most 20 (the oldest drops off).
+- `thumb` is a JPEG data URL made in the browser from the chosen screenshot before sending: long edge 240px, quality 0.7, about 10–30 KB. Twenty entries stay well under the ~5 MB `localStorage` budget.
+- Read through a Zod schema; a corrupt or foreign value is ignored, never thrown. Every read and write is wrapped in try/catch: in a private window or with storage blocked the page still works, it just has no history.
+- Written only after the server confirms the save, so the history never shows a report that wasn't saved.
+
+**Statuses (`getReportStatusesAction(slug, ids)` → `lib/reports/statuses.ts`).**
+- Input validated with Zod: `slug` string, `ids` an array of at most 20 UUIDs. Anything else returns `[]`.
+- One query: `SELECT t.id, t.status FROM tickets t JOIN projects p ON p.id = t.project_id WHERE p.slug = $1 AND t.id = ANY($2)`. Primary-key lookups; the join makes an id from another project return nothing.
+- Returns `{ id, status }[]` and nothing else: no sentence, fields, extraction state or screenshot. A ticket id works like a key held only by the device that sent the report (UUID v4, 122 random bits).
+- Called on mount and when the page becomes visible again (`visibilitychange`), so a client returning from WhatsApp sees fresh statuses. No polling.
+- Status words on the client: `new` → Received, `in_progress` → In progress, `done` → Done, with the same monochrome glyphs as the dashboard (`components/status-glyph.tsx`). An id the server doesn't return (for example a deleted ticket) shows its message without a status.
+
+**Submit.** `submitReportAction` now returns `{ ok: true, ticketId }`; the client needs the id for its history. Everything else in `submitReport` is unchanged.
+
+### Dashboard chats `/dashboard` (slices 7–8)
+
+**Redesign note (2026-10-17):** the dashboard takes the same shell and tokens as the client portal. Its layout is settled with Filip before slice 7; the text below is the earlier chat version and is rewritten then.
+
+**Route.** `/dashboard?project=<id>&extraction=…&status=…`. Without `project`, desktop selects the chat with the latest report; below 1024px the chat list is the page.
+
+**Queries (`lib/tickets/queries.ts`).**
+- `listChats()`: one row per project with its latest report and open count:
+  ```sql
+  SELECT p.id, p.name, p.slug, last.client_sentence, last.created_at,
+         (SELECT count(*) FROM tickets o WHERE o.project_id = p.id AND o.status <> 'done') AS open_count
+  FROM projects p
+  LEFT JOIN LATERAL (
+    SELECT client_sentence, created_at FROM tickets t
+    WHERE t.project_id = p.id ORDER BY t.created_at DESC LIMIT 1
+  ) last ON true
+  ORDER BY last.created_at DESC NULLS LAST, p.name;
+  ```
+  *Postgres note for Filip:* `LATERAL` lets the subquery see the current project row, so "latest ticket per project" is one index range scan per project on `tickets_project_created_idx (project_id, created_at DESC)`. The open count scans that project's tickets; fine at hundreds per project.
+- `listThread({ projectId, extraction, status })`: the project's tickets oldest first with their attachment, same filters as the old list. Done tickets are included unless the Status filter excludes them.
+
+**Thumbnails.** The authenticated image route accepts `?w=320`: `sharp` resizes on the fly (`fit: inside`, JPEG 80), same session check and headers, `Cache-Control: private, max-age=300`. The thread never loads full-size screenshots.
+
+**Components.** `Item` + `Avatar` (initials) for chat rows; `Message`/`Bubble` for the client's message; a compact `Item` for the ticket card (state badge, Ask client, priority bars, status glyph; Done muted); `MessageScroller` for the thread; `Select` for filters in the chat header.
 
 ## Data Model
 
@@ -376,7 +435,7 @@ export const storage: Storage = createLocalStorage(env.UPLOAD_DIR);
 
 ### `lib/tickets` — queries and Markdown
 
-- `queries.ts`: `listTickets({ projectId, extraction, status })`, `getTicket(id)`, `updateTicketField(id, field, value)` with a hard whitelist of editable columns (`title, location, actualResult, priority, tags, expectedResult, stepsToReproduce, status`). Evidence columns are not editable in the PoC; filling an empty inferred field by hand leaves its evidence `NULL`, which the UI renders as "Added by you".
+- `queries.ts`: `listChats()`, `listThread({ projectId, extraction, status })` (see **Chat Surfaces**), `getTicket(id)`, `updateTicketField(id, field, value)` with a hard whitelist of editable columns (`title, location, actualResult, priority, tags, expectedResult, stepsToReproduce, status`). Evidence columns are not editable in the PoC; filling an empty inferred field by hand leaves its evidence `NULL`, which the UI renders as "Added by you".
 - `markdown.ts`: `ticketToMarkdown(ticket)`, pure. Implements the format in `prd.md > Reviewing a ticket` exactly: empty fields omitted, `_(suggested)_` markers only on inferred fields that were filled by extraction (evidence present), pending tickets reduce to the heading with the sentence as title plus the `> Client:` line.
 
 ### Thin layers
@@ -535,6 +594,12 @@ Pass 6, `vibesec-skill`, applied to the four areas Filip named. Each line is a b
 - [ ] Sentence: Zod `min(10).max(1000)`, stored as text, rendered by React (escaped). Shown in Markdown export inside a quote; no HTML rendering anywhere.
 - [ ] No AI call in the request path, so a malicious image cannot run up the bill faster than the rate limit allows (10 extractions per IP per hour ≈ 10 cents).
 
+**Client chat statuses (`getReportStatusesAction`, slice 3a)**
+- [ ] Input: `ids` is an array of at most 20 UUIDs, `slug` a string; anything else returns `[]`.
+- [ ] The query joins on the slug's project, so ids from another project return nothing; there is no way to list a project's tickets.
+- [ ] The response is `{ id, status }` only: no sentence, ticket fields, extraction state, error or screenshot.
+- [ ] History lives in the client's own browser (`localStorage`); the server stores nothing about devices.
+
 **Admin secret and session cookie**
 - [ ] `ADMIN_SECRET` ≥ 16 characters, compared with `crypto.timingSafeEqual` on equal-length buffers.
 - [ ] Cookie `snag_session`: `httpOnly`, `secure` when `APP_URL` starts with `https`, `sameSite: 'strict'`, `path: '/'`, `maxAge: 30 days`. Value `base64url(payload).base64url(hmac)`; payload `{ iat, exp }` only.
@@ -550,6 +615,7 @@ Pass 6, `vibesec-skill`, applied to the four areas Filip named. Each line is a b
 - [ ] `ticketId` validated as UUID by Zod; attachment row looked up; file read via `storage.get(row.storageKey)`. The URL never carries a path.
 - [ ] Headers: `Content-Type` from the row, `X-Content-Type-Options: nosniff`, `Content-Disposition: inline; filename="screenshot.<ext>"`, `Cache-Control: private, no-store`.
 - [ ] Uploads folder is outside `public/` and outside the Next build output; the app process is the only reader.
+- [ ] `?w=` on the image route accepts only `320` (thumbnail) or nothing (original); any other value is a 404.
 
 **Secrets**
 - [ ] `.env` and `.env.*` ignored; `.env.example` committed with empty values and one comment per variable. `.dockerignore` excludes `.env` too (the image must never contain it; Compose injects at runtime).
@@ -706,8 +772,8 @@ The runner imports `extractTicket` from `lib/extraction` and `ClaudeProvider` fr
 In order, each a `5-build` slice boundary.
 
 1. `npx create-next-app@latest snag --ts --tailwind --app --src-dir=false --import-alias "@/*"` (Next 16, Tailwind v4, Turbopack). Confirm `proxy.ts` is the convention on the installed version.
-2. `npx shadcn@latest init -t next --base base` — the CLI's `-b, --base <base>` option accepts `base | radix | aria` (**verified**); `base` is the Base UI variant (**verify in build**: the init summary names `@base-ui/react`). Then `npx shadcn@latest add button input textarea field badge toast dialog select empty spinner table kbd attachment`. **Catalog check result:** all thirteen components exist under the Base UI namespace (`/docs/components/base/…`) as of 2026-10-16 (**verified**), so the Radix fallback from `prd.md > Components` is not needed. Toast on the Base variant wraps Base UI Toast (**verified**).
-3. `npx shadcn@latest add https://www.kibo-ui.com/r/dropzone.json` — installs `react-dropzone` and `lucide-react`, depends on shadcn `button` only (**verified**).
+2. `npx shadcn@latest init -t next --base base` — the CLI's `-b, --base <base>` option accepts `base | radix | aria` (**verified**); `base` is the Base UI variant (**verify in build**: the init summary names `@base-ui/react`). Then `npx shadcn@latest add button input textarea field badge toast dialog select empty spinner table kbd attachment`. **Catalog check result:** all thirteen components exist under the Base UI namespace (`/docs/components/base/…`) as of 2026-10-16 (**verified**), so the Radix fallback from `prd.md > Components` is not needed. Toast on the Base variant wraps Base UI Toast (**verified**). **Slice 3a adds** `message message-scroller bubble input-group item avatar` (all Base UI, **verified** in the registry on 2026-10-17; `message-scroller` depends on `@shadcn/react`) and removes the Kibo Dropzone component; `react-dropzone` stays as a direct dependency.
+3. `npx shadcn@latest add https://www.kibo-ui.com/r/dropzone.json` — installs `react-dropzone` and `lucide-react`, depends on shadcn `button` only (**verified**). Removed again in slice 3a: `react-dropzone` stays as a direct dependency.
 4. `npm i drizzle-orm pg @anthropic-ai/sdk zod sharp nanoid` and `npm i -D drizzle-kit @types/pg vitest tsx`.
 5. `docker compose up -d db`, write `lib/db/schema.ts`, `npm run db:generate`, **migration-auditor pass**, `npm run db:migrate`.
 
@@ -731,19 +797,28 @@ Expected result for migration 0000 on an empty database: all statements are `CRE
 ```
 snag/
 ├── app/
-│   ├── layout.tsx                     # fonts, <Toaster/>, data-surface switch
+│   ├── layout.tsx                     # the one root layout: <html lang="en">, fonts
 │   ├── globals.css                    # @theme tokens from prd.md > Look and Feel
 │   ├── api/health/route.ts            # SELECT 1 → 200, for Compose healthcheck
-│   ├── r/[slug]/
-│   │   ├── page.tsx                   # server: project by slug, renders form   (prd: Reporting a problem)
-│   │   └── report-form.tsx            # client: Dropzone, Attachment, validation, confirmation state
+│   ├── (client)/
+│   │   ├── layout.tsx                 # data-surface="client", noindex, theme color
+│   │   └── r/[slug]/
+│   │       ├── page.tsx               # server: project by slug, DEVELOPER_NAME/EMAIL (prd: Reporting a problem)
+│   │       ├── client-portal.tsx      # client: state, history + statuses, drop/paste, send, layout
+│   │       ├── new-report.tsx         # screenshot area, sentence, chips, Send
+│   │       ├── report-list.tsx        # In progress / Done groups with date tiles
+│   │       ├── report-timeline.tsx    # one report: her message + quiet steps
+│   │       ├── welcome-notes.tsx      # first visit: How it works, What happens next, Contact
+│   │       └── not-found.tsx          # broken report link
 │   ├── login/
 │   │   ├── page.tsx
 │   │   └── login-form.tsx             # client: Field + error copy             (prd: Getting in)
 │   ├── dashboard/
-│   │   ├── layout.tsx                 # shell: wordmark, project switcher, Copy report link, sign out
-│   │   ├── page.tsx                   # ticket list, reads searchParams        (prd: Working the list)
-│   │   ├── ticket-list.tsx            # client: keyboard nav, poll while pending
+│   │   ├── layout.tsx                 # shell: wordmark, sign out
+│   │   ├── page.tsx                   # chats: list + thread, reads searchParams (prd: Working the chats)
+│   │   ├── chat-list.tsx              # left column rows
+│   │   ├── thread.tsx                 # client: message + ticket card, keyboard nav, poll while pending
+│   │   ├── ticket-card.tsx            # compact card linking to detail
 │   │   ├── tickets/[id]/
 │   │   │   ├── page.tsx               # two columns, server-rendered           (prd: Reviewing a ticket)
 │   │   │   ├── ticket-fields.tsx      # client: editable fields, save on blur, status/priority selects
@@ -751,7 +826,7 @@ snag/
 │   │   └── images/[ticketId]/route.ts # authenticated image                    (prd: Who sees what)
 │   └── actions/
 │       ├── auth.ts                    # loginAction, signOutAction
-│       ├── report.ts                  # submitReportAction (+ after → runExtraction)
+│       ├── report.ts                  # submitReportAction (+ after → runExtraction), getReportStatusesAction
 │       ├── tickets.ts                 # updateTicketFieldAction, retryExtractionAction
 ├── proxy.ts                           # redirect /dashboard/* without a valid cookie
 ├── instrumentation.ts                 # register(): stale-pending recovery
@@ -779,9 +854,9 @@ snag/
 │       ├── queries.ts                 # list/get/update with field whitelist
 │       └── markdown.ts                # ticketToMarkdown
 ├── components/
-│   ├── ui/                            # shadcn (Base UI) + kibo dropzone
+│   ├── ui/                            # shadcn (Base UI)
 │   ├── state-badge.tsx                # extracted/pending/failed/ask-client with dot
-│   ├── status-glyph.tsx, priority-bars.tsx
+│   ├── status-glyph.tsx, priority-bars.tsx, date-tile.tsx, snag-mark.tsx
 │   └── copy-button.tsx                # clipboard + toast, used for link and Markdown
 ├── drizzle/                           # generated SQL + meta/ (committed)
 ├── drizzle.config.ts
@@ -846,6 +921,13 @@ Nothing else leaves the box.
 7. **Default model `claude-sonnet-5-5`**, ID in `EXTRACTION_MODEL` so 4.6 can be compared later. The eval runs on 5.5 first. Consequences carried into the spec: `max_tokens` raised to 8192 for adaptive thinking, the retry feedback goes in a user turn, and no sampling parameters are set.
 
 Also confirmed as drafted: Base UI only with no Radix fallback, the two indexes, the Postgres 18 volume path, the separate migrate step, and eval keyword matching with manual overrides counted separately.
+
+### Filip's decisions during the build (2026-10-17)
+
+- **Chat on both sides** (see **Chat Surfaces**): client chat with this device's history and statuses, dashboard as one chat per client. Accepted at about +1.5 days with the extended cut order in `scope.md > If We Lose Two Days`.
+- **Client header subline** is the developer's name from `DEVELOPER_NAME`; `DEVELOPER_EMAIL` adds a mail link on the Contact card.
+- **Redesign** (see **Look and Feel** and **Chat Surfaces**): English only everywhere, strict monochrome palette, piz-erp shell and type scale, client page as a portal instead of a chat.
+- **Done tickets stay in the dashboard thread, muted**; the Status filter can hide them.
 
 ### Build process (Filip's instructions for `5-build`)
 

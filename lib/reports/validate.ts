@@ -1,12 +1,13 @@
 // Shared by the report form (browser) and submitReport (server): limits, error codes, and the
 // checks that don't need the bytes. Pure, so it can ship in the client bundle. The words for
-// each code live in lib/i18n/client-copy.ts, in the client's language.
+// each code live in lib/copy/client.ts.
 
 export const REPORT_ERROR_CODES = [
   'sentenceShort',
   'sentenceLong',
   'missingImage',
   'invalidType',
+  'unreadableImage', // browser only: the image could not be decoded
   'tooLarge',
   'tooManyPixels',
   'oneFile', // browser only: more than one file dropped
@@ -27,6 +28,20 @@ export function checkSentence(sentence: string): ReportErrorCode | null {
   if (length < SENTENCE_MIN) return 'sentenceShort';
   if (length > SENTENCE_MAX) return 'sentenceLong';
   return null;
+}
+
+/**
+ * Browser only: a starter chip ("A button doesn't work") is not a report by itself. When the
+ * sentence begins with one, the words after it must pass the length rule on their own.
+ */
+export function checkSentenceDetail(sentence: string, starters: readonly string[]): ReportErrorCode | null {
+  const base = checkSentence(sentence);
+  if (base) return base;
+  const text = sentence.trim();
+  const starter = starters.find((s) => text.toLowerCase().startsWith(s.toLowerCase()));
+  if (!starter) return null;
+  const rest = text.slice(starter.length).replace(/^[\s:.,;-]+/, '');
+  return rest.length < SENTENCE_MIN ? 'sentenceShort' : null;
 }
 
 /** Browser pre-check on the declared type and size. The server ignores the declared type and sniffs the bytes. */

@@ -97,9 +97,11 @@ Agreed in advance, first cut first. Nothing below ships half-done; it is removed
 
 1. Deployment (already a stretch item).
 2. **Retry extraction** button. Stays in scope with a one-hour cap; if it exceeds the cap it is cut, and failed tickets are re-run through the eval runner by ticket ID instead.
-3. Confidence correlation analysis: still log confidence, skip the five-versus-five check, keep 0.6 untuned.
-4. Login rate limit. The admin secret stays. The **report-link rate limit never goes**; it protects the credits.
-5. If a third day goes: tags out of the UI (stay in the schema); eval to the ten-image floor.
+3. Client chat extras (added 2026-10-17 with the chat direction): thumbnails in the client's history and the reply message after sending. The composer, the history's sentences and their statuses stay.
+4. Dashboard chat extras (added 2026-10-17): last-message preview and open counts in the chat list, and j/k keyboard navigation. Click and Enter stay.
+5. Confidence correlation analysis: still log confidence, skip the five-versus-five check, keep 0.6 untuned.
+6. Login rate limit. The admin secret stays. The **report-link rate limit never goes**; it protects the credits.
+7. If a third day goes: tags out of the UI (stay in the schema); eval to the ten-image floor.
 
 **Never cut:** client report page with its states, save-first persistence, two-tier extraction with evidence and `null` honesty, `ask client` badge, ticket list and detail with edit / status / Markdown, eval runner and README numbers, seed data with one pre-extracted ticket.
 

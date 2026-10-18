@@ -6,36 +6,69 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Snag design tokens, from prd.md > Look and Feel. Light theme only.
- * Every color means one thing: accent = the one primary action; ok / attention / danger / pending
- * = extraction states and the Ask client badge. Status and priority never use a state color.
+ * Snag tokens (Filip, 2026-10-17): strict monochrome. Graphite chrome around a light workspace,
+ * thin borders instead of shadows, one type scale. The only color is failure red, used solely
+ * for extraction_failed. Everything else is told apart by surface, border, weight, size and icons:
+ * client message = sunken, ticket card = white with a border, Ask client = outlined pill with an
+ * icon, reading = dashed border, done = check icon + muted text.
+ *
+ * Contrast (WCAG 2.2 AA, computed): ink 18.6 / 16.9 / 15.8 on surface / canvas / sunken;
+ * ink-secondary 8.5 / 7.7 / 7.2; ink-muted 5.3 / 4.9 / 4.5; danger 6.6 / 6.0 / 5.6;
+ * chrome-fg 16.0 / 14.4 / 12.5 on chrome / hover / selected; chrome-fg-muted 6.0 / 5.4 / 4.7;
+ * white on primary 18.6. Control edges (line-strong) 3.6 on surface, 3.2 on canvas.
  */
 :root {
-  --canvas: #f6f7f9;
+  /* Workspace */
+  --canvas: #f4f4f5;
   --surface: #ffffff;
-  --ink: #1c2024;
-  --ink-muted: #5b6470;
-  --ink-faint: #8b929c; /* placeholders only: an example must not read as typed text */
-  --line: #e3e6ea;
-  --accent: #1e4fd8;
+  --sunken: #ececee;
+  --ink: #121316;
+  --ink-secondary: #4a4d53;
+  --ink-muted: #686b71; /* #6f7278 failed on canvas (4.4) and sunken (4.1) */
+  --ink-faint: var(--ink-muted); /* placeholders: clearly lighter than typed ink, still AA */
+  --line: #e1e2e5; /* dividers */
+  --line-medium: #c7c9ce; /* card and panel edges */
+  --line-strong: #85888e; /* edges that alone identify a control: ≥3:1 (WCAG 1.4.11) */
+  --bubble-own: var(--sunken); /* the client's own message */
+  --accent: var(--ink); /* the primary action is ink, not a hue */
 
-  --ok-fill: #e3f3ea;
-  --ok-text: #166534;
-  --ok-dot: #16a34a;
-  --attention-fill: #fdf1d6;
-  --attention-text: #854d0e;
-  --attention-dot: #d97706;
-  --danger-fill: #fde8e8;
-  --danger-text: #991b1b;
-  --danger-dot: #dc2626;
-  --pending-fill: #eef0f3;
-  --pending-text: #4b5563;
-  --pending-dot: #9ca3af;
+  /* Chrome: the graphite bar (client) and the inverted L (developer) */
+  --chrome: #111214;
+  --chrome-hover: #1c1d20;
+  --chrome-selected: #27292d;
+  --chrome-line: #2a2c30;
+  --chrome-fg: #ededee;
+  --chrome-fg-muted: #8f9297;
 
-  /* Type scale: three levels. The client page bumps body and meta for thumbs and distance. */
-  --body-size: 15px;
-  --body-leading: 24px;
-  --meta-size: 13px;
+  /* The one color: an extraction that failed. Nothing else is red. */
+  --danger: #b42318;
+  --danger-soft: #fbe4e1;
+
+  /* Extraction states and Ask client, told apart without color (see the header comment). */
+  --ok-fill: var(--surface);
+  --ok-text: var(--ink);
+  --ok-dot: var(--ink);
+  --attention-fill: var(--surface);
+  --attention-text: var(--ink);
+  --attention-dot: var(--ink);
+  --danger-fill: var(--danger-soft);
+  --danger-text: var(--danger);
+  --danger-dot: var(--danger);
+  --pending-fill: var(--surface);
+  --pending-text: var(--ink-secondary);
+  --pending-dot: var(--ink-muted);
+
+  /* Data and meta text; the client page bumps them (16px inputs avoid iOS zoom). */
+  --body-size: 14px;
+  --body-leading: 22px;
+  --meta-size: 12px;
+  --meta-leading: 16px;
+
+  /* Motion: interactions 120–180 ms, panels at most 240 ms. */
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-slow: 180ms; /* the ceiling: nothing in Snag moves longer */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* shadcn's variables, mapped onto the tokens. Nothing is left to shadcn defaults. */
   --background: var(--canvas);
@@ -44,39 +77,56 @@
   --card-foreground: var(--ink);
   --popover: var(--surface);
   --popover-foreground: var(--ink);
-  --primary: var(--accent);
+  --primary: var(--ink);
   --primary-foreground: #ffffff;
-  --secondary: var(--canvas);
+  --secondary: var(--sunken);
   --secondary-foreground: var(--ink);
-  --muted: var(--canvas);
+  --muted: var(--sunken);
   --muted-foreground: var(--ink-muted);
   --accent-foreground: var(--ink);
-  /* Red is reserved for "extraction failed", which uses --danger-* explicitly. */
-  --destructive: var(--ink);
+  --destructive: var(--ink); /* red is only for extraction_failed, set explicitly */
   --border: var(--line);
-  --input: var(--line);
-  --ring: var(--accent);
-  --radius: 0.5rem; /* panels 8px; controls get radius-md ≈ 6px */
+  --input: var(--line-strong);
+  --ring: var(--ink);
+  --radius: 0.5rem; /* controls 8px; cards 12px (lg); panels 16px (xl) */
 }
 
 [data-surface="client"] {
-  --body-size: 17px;
-  --body-leading: 26px;
-  --meta-size: 14px;
+  --body-size: 16px;
+  --body-leading: 24px;
+  --meta-size: 13px;
+  --meta-leading: 18px;
 }
 
 @theme inline {
+  /* Every transition-* utility uses Snag's timing unless a class says otherwise. */
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--ease-standard);
+
   --font-sans: var(--font-plex-sans);
   --font-mono: var(--font-plex-mono);
   --font-heading: var(--font-plex-sans);
 
   --color-canvas: var(--canvas);
   --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
   --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
   --color-ink-muted: var(--ink-muted);
   --color-ink-faint: var(--ink-faint);
   --color-line: var(--line);
+  --color-line-medium: var(--line-medium);
+  --color-line-strong: var(--line-strong);
+  --color-bubble-own: var(--bubble-own);
   --color-brand: var(--accent);
+  --color-chrome: var(--chrome);
+  --color-chrome-hover: var(--chrome-hover);
+  --color-chrome-selected: var(--chrome-selected);
+  --color-chrome-line: var(--chrome-line);
+  --color-chrome-fg: var(--chrome-fg);
+  --color-chrome-fg-muted: var(--chrome-fg-muted);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --color-ok-fill: var(--ok-fill);
   --color-ok-text: var(--ok-text);
   --color-ok-dot: var(--ok-dot);
@@ -90,14 +140,23 @@
   --color-pending-text: var(--pending-text);
   --color-pending-dot: var(--pending-dot);
 
-  --text-title: 24px;
-  --text-title--line-height: 32px;
+  /* Type scale: display 24 / title 20 / label 11 uppercase / data (body) 14 / meta 12. */
+  --text-display: 24px;
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 600;
+  --text-title: 20px;
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.02em;
   --text-title--font-weight: 600;
+  --text-label: 11px;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.08em;
+  --text-label--font-weight: 500;
   --text-body: var(--body-size);
   --text-body--line-height: var(--body-leading);
   --text-meta: var(--meta-size);
-  --text-meta--line-height: 20px;
-  --text-meta--font-weight: 500;
+  --text-meta--line-height: var(--meta-leading);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -105,7 +164,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
-  --color-accent: var(--canvas);
+  --color-accent: var(--sunken);
   --color-accent-foreground: var(--accent-foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
@@ -117,35 +176,64 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 2);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   html {
     @apply font-sans;
   }
   body {
     @apply bg-background text-body text-foreground;
+    font-variant-numeric: tabular-nums;
   }
-  /* Keyboard focus is always visible: 2px accent ring. */
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+  /* The browser's own surfaces carry the palette too: selection, caret, scrollbars. */
+  ::selection {
+    background-color: color-mix(in oklab, var(--ink) 14%, transparent);
+    color: var(--ink);
+  }
+  input,
+  textarea {
+    caret-color: var(--ink);
+  }
+  * {
+    scrollbar-color: var(--line-medium) transparent;
+    scrollbar-width: thin;
   }
 }
 
-/* The one motion on the client page: the screenshot settles into the "sent" message. */
+/*
+ * Keyboard focus is always visible: 2px ink outline (light workspace) or 2px chrome-fg outline
+ * (graphite chrome). Unlayered on purpose: Tailwind's utilities live in a cascade layer, so
+ * shadcn's `outline-none` can't switch this off.
+ */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+[data-surface="dark"] :focus-visible {
+  outline-color: var(--chrome-fg);
+}
+[data-slot="input-group-control"]:focus-visible {
+  outline: none;
+}
+[data-slot="input-group"]:has([data-slot="input-group-control"]:focus-visible) {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Motion: a new item settles in (160 ms, 4px). Nothing moves on load. */
 @keyframes settle {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -155,13 +243,18 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .animate-settle {
-    animation: settle 240ms ease-out;
+    animation: settle var(--motion-base) var(--ease-standard);
   }
 }
 
-/* Reduced motion: the spinner becomes a static mark. */
+/* Reduced motion: the spinner becomes a static mark, transitions become instant. */
 @media (prefers-reduced-motion: reduce) {
   [data-slot="spinner"] {
     animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
   }
 }

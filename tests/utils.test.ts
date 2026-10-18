@@ -18,9 +18,10 @@ describe('cn knows the type scale', () => {
 
 describe('components use the configured cn', () => {
   it('no component imports cn straight from the "cn" package', () => {
-    const files = ['components/ui', 'components/kibo-ui/dropzone'].flatMap((dir) =>
-      readdirSync(dir).filter((f) => f.endsWith('.tsx')).map((f) => path.join(dir, f)),
-    );
+    const files = readdirSync('components', { recursive: true, encoding: 'utf8' })
+      .filter((f) => f.endsWith('.tsx'))
+      .map((f) => path.join('components', f));
+    expect(files.length).toBeGreaterThan(10);
     const offenders = files.filter((f) => /from ["']cn["']/.test(readFileSync(f, 'utf8')));
     expect(offenders).toEqual([]);
   });

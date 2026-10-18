@@ -17,6 +17,13 @@ declare module 'vitest' {
 const TEST_DB = 'snag_test';
 
 export default async function setup(project: TestProject) {
+  // SNAG_SKIP_TEST_DB=1 runs DB-free test files without touching snag_test, so two test runs
+  // (e.g. a helper agent and the main session) can't drop the database under each other.
+  if (process.env.SNAG_SKIP_TEST_DB === '1') {
+    project.provide('testDatabaseUrl', null);
+    project.provide('testDatabaseError', 'skipped (SNAG_SKIP_TEST_DB=1)');
+    return;
+  }
   if (existsSync('.env')) process.loadEnvFile('.env');
   const url = process.env.DATABASE_URL;
 
