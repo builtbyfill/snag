@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planUpload, thumbSize, UPLOAD_MAX_EDGE, UPLOAD_MAX_BYTES } from '@/lib/reports/prepare-image';
+import { planUpload, previewSize, thumbSize, UPLOAD_MAX_EDGE, UPLOAD_MAX_BYTES } from '@/lib/reports/prepare-image';
 
 const MB = 1024 * 1024;
 
@@ -41,5 +41,16 @@ describe('thumbSize (the small copy kept in this device\'s history)', () => {
 
   it('never enlarges a tiny image', () => {
     expect(thumbSize(100, 50)).toEqual({ width: 100, height: 50 });
+  });
+});
+
+describe('previewSize (the full-size copy kept on this device, opened from the report)', () => {
+  it('fits the long edge into 1600 px', () => {
+    expect(previewSize(1170, 2532)).toEqual({ width: 739, height: 1600 });
+    expect(previewSize(2560, 1440)).toEqual({ width: 1600, height: 900 });
+  });
+
+  it('never enlarges a small screenshot', () => {
+    expect(previewSize(750, 1334)).toEqual({ width: 750, height: 1334 });
   });
 });

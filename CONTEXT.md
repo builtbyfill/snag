@@ -28,6 +28,10 @@ _Avoid_: form link, public link, share link
 What the client sends: one screenshot plus one client sentence. A report becomes a ticket the moment it is saved.
 _Avoid_: submission, feedback, bug report (a report is not yet a ticket)
 
+**Follow-up**:
+Text the client adds later to a report they already sent, from the same device and in the report's chat. Text only: a new screenshot means a new report. It never changes the ticket's fields or status.
+_Avoid_: reply, comment, message (nothing is sent back to the client)
+
 **Client sentence**:
 The client's own words, stored verbatim in their language, never translated or edited.
 _Avoid_: description, message, comment

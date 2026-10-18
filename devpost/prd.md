@@ -18,10 +18,10 @@ Source: `scope.md > The Core Loop`, `scope.md > What "Working" Looks Like`.
 
 1. Filip runs the seed script once. It creates the project "Clinic booking" with an unguessable report slug, plus seed tickets including one already extracted. He opens `/login`, enters the access code, and lands on the chats: one per client project.
 2. He opens the "Clinic booking" chat and taps **Copy report link** in its header. He pastes the link to the client on WhatsApp. This is the last time he does anything before a report arrives.
-3. The client opens `/r/<slug>` on her phone. A graphite bar holds the Snag mark, the project name, Filip's name and "Usually replies the same day". Below it, on a light workspace, a first visit shows the **New report** form, with short notes (How it works, What happens next, Contact) under it on a phone and beside it on a laptop. The form has a large "Add a screenshot" area, the field "What happened?" and **Send report**.
-4. She taps "Add a screenshot". The phone's native picker opens with Photo Library and Camera. She picks the screenshot; it fills the area with **Replace** and **Remove** underneath.
-5. She types "Kliknula sam Sačuvaj na terminu i ništa se nije desilo." (her own words stay as she wrote them; the page around them is English) and taps **Send report**. The button shows "Sending…" for a moment.
-6. The page switches to her report: the headline "Report received", her screenshot and sentence as a sent message, and the path Received → In progress → Done with the first step checked. Nothing else is asked of her, and nothing about AI is mentioned. When she opens the link again from the same phone, it opens on "Your reports": her earlier reports under **In progress** and **Done**, each with a date tile and its status.
+3. The client opens `/r/<slug>` on her phone. A dark bar holds the Snag mark, the project name, Filip's name and when to expect a reply ("Usually replies the same day" inside office hours, "Back tomorrow at 9:00" outside). The page is a conversation: a welcome block at the top ("Hi, Clinic booking team. This is your direct line to Filip for anything that doesn't work.", three steps, the reply line), and a composer pinned to the bottom with an image button, a one-line field and **Send**.
+4. She taps the image button. The phone's native picker opens with Photo Library and Camera. She picks the screenshot; it appears as a small chip above the field with a remove button.
+5. She types "Kliknula sam Sačuvaj na terminu i ništa se nije desilo." (her own words stay as she wrote them; the page around them is English) and taps **Send**. The button shows "Sending…" for a moment.
+6. The new chat becomes her report's chat: the framed screenshot, her sentence, the time with "Sent" and a "Copy link to this report" action, and a quiet "Received 18 Oct, 14:05" row under it. Nothing else is asked of her, and nothing about AI is mentioned. When she opens the link again from the same phone, "Your reports" lists every report she sent; each opens its own chat with its status rows.
 7. In the dashboard her report appears at the bottom of the "Clinic booking" chat within seconds, as her message followed by a ticket card in a neutral "Reading screenshot…" state with a spinner; the chat moves to the top of the chat list. A few seconds later the card fills with a title, priority, and the "Extracted" state.
 8. Filip clicks the ticket card and the ticket detail opens. Left: the screenshot and her sentence, verbatim. Right: Title, Where it happened, What's wrong, Priority, Tags. Below, under "Suggested by AI": Expected result and Steps to reproduce, each with a "Based on:" evidence line. Where the model couldn't support a field it reads "Not enough in the screenshot to tell." and shows an **Add** affordance.
 9. He fixes one field by clicking into it and typing; it saves when he leaves the field and shows "Saved" inline. He sets Status to "In progress". He taps **Copy as Markdown**, sees the toast "Copied as Markdown", and pastes into a GitHub issue.
@@ -36,12 +36,12 @@ Source: `scope.md > The POC Boundary` (four finished surfaces).
 ### `/login`
 Single centered column, max width 360px. Wordmark "Snag", a label "Access code", one secure input, one prominent button "Open dashboard". Nothing else on the page. Successful login goes to the ticket list; the session lasts 30 days.
 
-### Client report page `/r/<slug>`: a small portal
+### Client report page `/r/<slug>`: a conversation
 Redesign, 2026-10-17 (Filip; references: his piz-erp for the shell and type scale, Plain's customer portal for the grouping). Full height. Two parts:
-- **Graphite bar** (`chrome`, 56px): the Snag mark, the project name, the developer's name (`DEVELOPER_NAME`) and "Usually replies the same day".
-- **Light workspace**, inset into the graphite frame on wide screens (an inverted L, as in piz-erp). At 1024px and wider a 320px left column holds the list; on a first visit it holds the notes instead. The main area is one centered column (max 560px) showing either the **New report** form or one report's timeline.
+- **Bar** (52px, dark): the Snag mark, the project name, the developer's name (`DEVELOPER_NAME`) and the reply line computed from office hours (default Mon–Fri 9–17 Europe/Sarajevo).
+- **Three panes** under the bar (Filip, 2026-10-18), full bleed with no max width, separated by 1px hairlines. Every report is its own chat, as in a messaging app. **Left, 300px, `pane`:** "New report" (opens a new chat), this device's reports (each opens its chat), and the **Help** block pinned at the bottom (with no reports yet, the Help block is the pane's content, at the top) (how to take a screenshot on iPhone, Android, Windows and Mac; add it here; Contact). **Middle, flexible, `canvas`:** the open chat, content at 40px from the edges: a new chat shows the welcome block and the composer pinned to the bottom; a report's chat shows her message with its status rows and, instead of a composer, "More to add, or something else broken? Start a new report." with a **New report** button. **Right, 320px, `pane`, 16px padding:** the open report's status: headline, status timeline, What happens next, contact by email. A new chat has no right pane.
 - **Your reports:** a pinned "New report" button, then two groups, **In progress** (everything not done, newest first) and **Done**, each with an uppercase label and a count. A row is a date tile (day + month), the sentence on up to two lines, and the status glyph with its word. Done rows are muted. The open report is marked with a sunken row and a 2px ink bar on its left edge.
-- **On phones** a first visit opens on the form with the notes under it. Once reports exist the page opens on "Your reports" (heading, a black "New report" button, the groups); the form and each report have a "Your reports" back button. The form's Send row is pinned to the bottom with a safe-area margin.
+- **Below 1024px** only the open chat shows, with the composer (or the New report bar) pinned to the bottom of the screen. A report's chat carries its own status rows, so the right pane isn't needed. The list opens in a sheet from an icon with the report count at the left of the bar ("Your reports, 3" for screen readers).
 
 Every tap target at least 44px. No navigation, no footer.
 
@@ -71,11 +71,11 @@ Source: `scope.md > Inspiration & Identity`. Redesigned with Filip on 2026-10-17
 
 | Token | Size / line | Weight | Use |
 | --- | --- | --- | --- |
-| `display` | 24 / 28, −0.02em | 600 | Page heading ("New report") |
-| `title` | 20 / 24, −0.02em | 600 | Section and ticket titles |
+| `display` | 22 / 26, −0.02em | 600 | Page title ("New report", "Report received") |
+| `title` | 18 / 23, −0.02em | 600 | Section and ticket titles |
 | `label` | 11 / 13, +0.08em, uppercase | 500 | Group labels ("IN PROGRESS"), date-tile months, column heads |
-| `body` | 14 / 22 (client page 16 / 24) | 400 | Fields, sentences, rows |
-| `meta` | 12 / 16 (client page 13 / 18) | 400–500 | Times, hints, status words |
+| `body` | 14 / 22 | 400 | Fields, sentences, rows (text fields 16px on touch screens, so iOS doesn't zoom) |
+| `meta` | 12 / 16 | 400–500 | Times, hints, status words |
 
 Sentence case everywhere else, including buttons. Uppercase only in `label`. Line length under 70 characters in reading columns.
 
@@ -98,6 +98,37 @@ Sentence case everywhere else, including buttons. Uppercase only in `label`. Lin
 | `line` / `line-medium` | `#E1E2E5` / `#C7C9CE` | Dividers / card borders | |
 | `line-strong` | `#85888E` | Control edges (fields, the screenshot area) | 3.6 / 3.2 (WCAG 1.4.11) |
 | `danger` | `#B42318` | **Extraction failed**, nothing else | 6.6 / 6.0 / 5.6; white on it 6.6 |
+
+**Dark set: the client page now, the dashboard later** (Filip, 2026-10-18, final pass). Same token names under a `.dark` wrapper, which `app/(client)/layout.tsx` sets.
+
+| Token | Dark hex | Role |
+| --- | --- | --- |
+| `pane` | `#171717` | Left and right panes; also the bar (`chrome`, with a `#303030` hairline under it) |
+| `canvas` | `#212121` | The middle pane |
+| `surface` | `#2A2A2A`, edge `#3A3A3A` (`line-medium`) | Raised: cards, popovers, the frame around every screenshot (1px edge, 4px padding) |
+| `sunken` | `#2F2F2F` | Inputs, the drop area, the client's message, date tiles; also hover |
+| `selected` | `#343434` | The open row in a list |
+| `ink` / `ink-secondary` / `ink-muted` | `#ECECEC` / `#B4B4B4` / `#9C9C9C` | Text |
+| `line` | `#303030` | Hairlines |
+| `line-strong` | `#7E7E7E` | Edges that identify a control (fields, drop area, chips, outline buttons) |
+| `line-quiet` | `#4A4A4A` | Decorative strong lines: future-step rings, the dashed connector |
+| primary button | `#ECECEC`, text `#0D0D0D`, hover `#FFFFFF` | |
+| `danger` | `#F0665A` | Extraction failed only |
+
+Text contrast (WCAG 4.5:1), on pane / canvas / raised / sunken / selected:
+
+| Text | pane | canvas | raised | sunken | selected |
+| --- | --- | --- | --- | --- | --- |
+| `#ECECEC` | 15.2 | 13.6 | 12.2 | 11.3 | 10.5 |
+| `#B4B4B4` | 8.7 | 7.8 | 6.9 | 6.5 | 6.0 |
+| `#9C9C9C` (muted) | 6.5 | 5.9 | 5.2 | 4.9 | 4.5 |
+| `#F0665A` (red) | 5.8 | 5.2 | 4.6 | 4.3 ✗ | 4.0 ✗ |
+
+Primary button text: 16.5 (19.4 on hover). Focus ring `#ECECEC`: at least 10.5. Control edges `#7E7E7E` (WCAG 1.4.11, 3:1): 4.4 / 4.0 / 3.5 / 3.3 / 3.1.
+
+Three values were adjusted after measuring. The brief's muted `#8E8E8E` measured 4.4 / 4.1 / 3.8 on raised / sunken / selected and became `#9C9C9C`. The brief's strong `#4A4A4A` measured 1.4–2.0 as a control edge, so control edges use `#7E7E7E` and `#4A4A4A` stays for decorative lines. Red fails on sunken and selected, so it is never placed there.
+
+The light set below still serves pages outside the client page.
 
 Filip's original muted grey `#6F7278` was 4.39:1 on canvas and 4.09:1 on sunken, so it was darkened to `#686B71`; the 1px borders he named are kept for dividers and cards, and `line-strong` is added for control edges, which need 3:1.
 
@@ -157,19 +188,20 @@ Source: `scope.md > The POC Boundary` (seed-created projects, slug).
 
 ### Reporting a problem (client page)
 
-Source: `scope.md > The Core Loop`, `scope.md > The POC Boundary` (client report, save first). Portal form decided by Filip, 2026-10-17. Every word is English and lives in `lib/copy/client.ts`; the client's sentence is kept in whatever language she writes it.
+Source: `scope.md > The Core Loop`, `scope.md > The POC Boundary` (client report, save first). Conversation layout decided by Filip, 2026-10-18 (references: Intercom's reply expectations and Messenger home, Marker.io, Productlane's support portal). Every word is English and lives in `lib/copy/client.ts`; the client's sentence is kept in whatever language she writes it.
 
-- **Header (graphite bar):** Snag mark, project name, developer's name, "Usually replies the same day". Page title "Report a problem: <project>".
-- **First visit** (no reports from this device): short notes divided by rules, not cards. "How it works": take a screenshot where it went wrong, then one sentence on what you did and what happened. "What happens next": the status moves from Received to In progress to Done on this page, so keep the link. "Contact" only when `DEVELOPER_NAME` or `DEVELOPER_EMAIL` is set: "<name> looks after <project>." with a mail link. On wide screens the notes fill the left column; on phones they sit under the form, so the task comes first.
-- **New report form:** heading "New report", one line "One screenshot and one sentence is enough.", the "Add a screenshot" area (opens the native picker, no `capture`; drop anywhere and paste work on desktop), the field "What happened?" with the placeholder "e.g. I tapped Save on the appointment and nothing happened." in a lighter grey, and while the field is empty three chips under it ("A button doesn't work", "A page won't load", "Wrong information shown") that start the sentence with a colon and put the caret after it. A chip alone is not a report: the words after it must pass the length rule on their own. **Send report** (black, 44px) always looks active.
-- **This device's reports:** the browser keeps up to 20 of its own reports for this link (ticket id, sentence, a small thumbnail, time). On load and when the page becomes visible again, the page asks the server for the status of those ids only; the server answers with `{id, status}` for ids that belong to this project and nothing else. The list groups them **In progress** (Received and In progress) and **Done**. A forwarded link shows the next person a first visit; nobody can list the project's reports.
-- **One report:** a headline in `title` size with the status glyph that says where it stands ("Report received" / "The team is working on it" / "The team has finished this") and one line on what it means for her ("If it still isn't working, send a new report." when done), her screenshot and sentence as a sent message (`sunken`) with "Sent 16 Oct, 14:32" under it, then the whole path Received → In progress → Done: passed steps checked, the current one bold, future ones hollow and muted. There is no reply box: a report is one screenshot and one sentence, and follow-up happens outside Snag.
-- **Validation:** sentence required, at least 10 characters, checked on send. One message at a time, in ink with an icon (red is reserved for extraction failures), right under the thing it is about: under the screenshot area (which also gets a 2px ink border and an alert icon) or under the field (2px ink border, its own look, not the focus look). Server and network messages sit above Send. The words never make her count: "Add a few words about what you tapped and what happened.", "Add a screenshot before sending." (focus moves to the screenshot area), "This isn't an image. Choose a screenshot or a photo.", "This image can't be opened. Try another one." On phones the message is scrolled into view above the pinned Send row.
-- **Sending:** Send shows "Sending…" with a spinner and the form is marked busy; after three seconds the line under it reads "Still sending. Your screenshot and text stay here." The request is complete when the image and sentence are saved; it does not wait for AI. On success the page opens the new report (it settles in with a short rise), focus moves to its headline, a screen reader hears "Report sent.", and the form is empty for the next one.
-- **Under Send**, one reassuring line: "No sign-up needed. The team will get back to you if they need more details." The client page never mentions WhatsApp; WhatsApp stays in the problem story only (pitch, README).
+- **Welcome block**, at the top of a new chat: the Snag mark, "This is your direct line to <name> for anything that doesn't work." ("the team" when `DEVELOPER_NAME` is not set), a three-step row (Screenshot → One sentence → We fix it, you follow the status here), and the number of this device's reports still in progress ("1 report in progress", "2 reports in progress"; nothing when there are none). The reply expectation ("Usually replies the same day" inside office hours; "Back tomorrow at 9:00", "Back today at 9:00" or "Back Monday at 9:00" outside) is shown once, in the bar. Office hours are one default for every project: Mon–Fri 9:00–17:00, Europe/Sarajevo (`lib/office-hours.ts`).
+- **One chat per report** (Filip, 2026-10-18): the page opens on a new chat; choosing a report in the list opens its chat. A report's chat is her message: the screenshot in a raised frame (at most 280px wide; tapping it opens the full-size copy this device kept when it sent the report; older reports show their 240px thumbnail), the sentence in a sunken box, the sent time with **Copy link to this report** ("Link copied" for two seconds), and one subdued row per status reached, GitHub-timeline style ("Received 18 Oct, 14:05", "In progress", "Done"), then any **follow-ups** she added, each with "Added <time>". Only Received has a time until the server records status changes (deferred). The chat ends with a field "Add something to this report" and **Send** (text only; Enter sends on a computer), and "Something else broken?" with a **New report** button. The copied link is `/r/<slug>?report=<id>`; on the device that sent the report it opens that report's chat, anywhere else it opens a new chat, because reports live only where they were sent.
+- **Composer** in a new chat: pinned to the bottom of the screen; only on desktop with no reports yet does it sit directly under the welcome card. It has the image button (opens the native picker, no `capture`; drop anywhere and paste work on desktop), a one-line field that grows ("What did you tap, and what happened instead?"), and **Send** (light primary, 36px; 44px on touch screens). While the field is empty three chips sit above it ("A button doesn't work", "A page won't load", "Wrong information shown"); tapping one starts the sentence with a colon. A chip alone is not a report: the words after it must pass the length rule on their own. The chosen screenshot shows as a small chip with a remove button. Under the composer: "We'll get back to you if we need more details." On a computer with a mouse, Enter sends and Shift+Enter starts a new line; on touch screens Enter is a new line.
+- **After sending:** the new chat becomes the report's chat, marked **Sent**, and screen readers hear "Report sent."
+- **First visit** (no reports yet): a new chat, the welcome block and the composer; no right pane.
+- **This device's reports:** the browser keeps up to 20 of its own reports for this link (ticket id, sentence, a small thumbnail, time). On load and when the page becomes visible again, the page asks the server for the status of those ids only; the server answers with `{id, status}` for ids that belong to this project and nothing else. A forwarded link shows the next person an empty conversation; nobody can list the project's reports.
+- **Validation:** sentence required, at least 10 characters, checked on send. One message at a time, in ink with an icon (red is reserved for extraction failures), just above the composer; a missing screenshot also rings the image button and moves focus to it, a short sentence gives the field a 2px border. The words never make her count: "Add a few words about what you tapped and what happened.", "Add a screenshot before sending.", "This isn't an image. Choose a screenshot or a photo.", "This image can't be opened. Try another one."
+- **Sending:** Send shows "Sending…" with a spinner and the composer is marked busy; after three seconds the line under it reads "Still sending. Your screenshot and text stay here." The request is complete when the image and sentence are saved; it does not wait for AI.
 - **Large photos** (a phone photo of a monitor can be 8–50 MB) are shrunk in the browser before sending (long edge 2560 px, JPEG); only an image that cannot be read at all is refused.
-- **Rate limit** (more than 10 reports from one address in an hour): the form keeps its content; message "Too many reports from this device in the last hour. Try again in an hour."
-- **Network or server failure:** the form keeps everything; message "Couldn't send the report. Check your connection and try again."
+- **Rate limit** (more than 10 reports from one address in an hour): the composer keeps its content; message "Too many reports from this device in the last hour. Try again in an hour."
+- **Network or server failure:** the composer keeps everything; message "Couldn't send the report. Check your connection and try again."
+- **Deferred** (Filip, 2026-10-18): "This blocks my work" (`client_flag`), status-change times in the system rows, "Works now" / "Still broken" on Done reports, per-project office hours, and opening a report link on another device. The client page never mentions WhatsApp; contact is name and email from `.env`.
 - No text on this page mentions AI, tickets, extraction, or the dashboard.
 
 ### Reading the screenshot (extraction, as the product sees it)
@@ -231,7 +263,7 @@ Source: `scope.md > The Unique Kernel`, `scope.md > Inspiration & Identity` (Sen
 - **First visit (developer)** — `/login`, then the chats with the seeded project and its seed tickets, one of them already extracted so the detail page has content on day one.
 - **Empty project** — see Working the chats. Invitation to copy the link, not a dead end.
 - **Pending extraction** — neutral, with a specific message ("Reading screenshot…"), never "Processing". The client never sees this state.
-- **Extraction failed** — red state, source intact, error kept behind a disclosure, Retry available, fields editable.
+- **Extraction failed** — red state, source intact, error kept behind a disclosure, Retry available, fields editable. Two kinds, told apart by the stored reason: the model, API or screenshot failed, or the server restarted while the screenshot was being read ("Extraction interrupted by a restart. Retry when ready."). Neither is retried automatically.
 - **Ask client** — outlined pill with an icon in list and detail, with its hint. It is advice to Filip, not an error.
 - **Validation errors (client)** — inline, next to the thing that is wrong, in the interface's voice, never an alert.
 - **Rate limited (client, login)** — inline message, the form stays, nothing lost.
@@ -263,8 +295,9 @@ From the `apple-design` paper review of the four surfaces, applied to a web app 
 Decisions carried from `scope.md` (grilling, 2026-10-15) and approved by Filip at this review (2026-10-16):
 
 - **IBM Plex Sans, one family** — latin-ext verified; distinctive without decoration; Plex Mono only for the copyable URL.
-- **Five type levels, four spacing steps** (2026-10-17, replaces three levels) — the piz-erp scale 24/20/11/14/12; the client page bumps body to 16px and meta to 13px for thumbs and distance.
-- **Strict monochrome** (2026-10-17, replaces one accent and four state colors) — graphite chrome, light workspace, black primary button; the only color is the failure red. States are told apart by surface, border, weight, size and icons.
+- **Five type levels, compact density** (2026-10-17, made compact 2026-10-18) — 22/18/11/14/12; list rows 56px, buttons 36px (44px on touch screens), header 52px, pane padding 16px, card padding 20px, gaps 12–16px.
+- **Strict monochrome** (2026-10-17, replaces one accent and four state colors) — the only color is the failure red. States are told apart by surface, border, weight, size and icons.
+- **Client page dark** (2026-10-18, reverses "light workspace for daylight") — a ChatGPT-style neutral dark palette for the whole client page, the same set the dashboard will use. The light tokens remain for pages outside the client and developer surfaces.
 - **Client page shows no AI, no spinner, no ticket** — the client's job ends at Send (`scope.md > Explicitly Cut`). Conscious decision: the "Suggested by AI · Check before you trust" disclosure lives on the dashboard only, where the AI output is actually read.
 - **Sentence required, 10 characters, one field** — `scope.md > The POC Boundary`.
 - **Save on blur, inline "Saved"** — Linear-like speed without an edit mode or a custom component; toasts only for failures and copies.
@@ -319,7 +352,7 @@ Source: `scope.md > Explicitly Cut`, `scope.md > Later`.
 - Ticket text in the client's language. English fields, verbatim sentence.
 - Per-field confidence.
 - Any AI wording, spinner, or error on the client page.
-- Jira or GitHub integration, comments, email notifications, a multi-language UI or a language switcher.
+- Jira or GitHub integration, replies from the developer on the client page, email notifications, a multi-language UI or a language switcher. (Clients can add text follow-ups to their own reports since 2026-10-18; the developer answers outside Snag.)
 - Colored priority or status. The color map is reserved.
 - Page-load animations, hover effects on every row, decorative gradients or shadows.
 
@@ -329,3 +362,4 @@ Source: `scope.md > Explicitly Cut`, `scope.md > Later`.
 - **Where the client-page confirmation animation lives** — one transition, CSS only, decided during build; respects reduced motion. Does not block.
 - **Exact "Reading screenshot…" refresh mechanism** for list rows and detail — `4-spec` (polling vs. streaming). Does not block.
 - **Filip to run `/pick-ui-library`** if he wants that skill's own verdict on the component table. Optional.
+- **Times for In progress and Done on the client timeline** (2026-10-18) — the server keeps no time for a status change, only `updated_at`, which any edit or extraction also moves. Showing them needs a small migration (two nullable columns set when the status changes in slice 8) and the status action returning them. Filip decides; until then only Received shows a time.

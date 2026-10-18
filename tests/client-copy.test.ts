@@ -23,18 +23,18 @@ describe('client page copy (English only, Filip 2026-10-17)', () => {
     expect(all).not.toMatch(/whatsapp/i);
   });
 
-  it('marks the sentence placeholder as an example', () => {
-    expect(clientCopy.newReport.placeholder).toMatch(/^e\.g\. /);
+  it('asks in the placeholder what was tapped and what happened instead', () => {
+    expect(clientCopy.composer.placeholder).toBe('What did you tap, and what happened instead?');
   });
 
   it('offers three suggestion chips that start a sentence', () => {
-    expect(clientCopy.newReport.chips).toHaveLength(3);
-    for (const chip of clientCopy.newReport.chips) expect(chip.length).toBeGreaterThanOrEqual(10);
+    expect(clientCopy.composer.chips).toHaveLength(3);
+    for (const chip of clientCopy.composer.chips) expect(chip.length).toBeGreaterThanOrEqual(10);
   });
 
   it('never makes the client count characters or press a platform key', () => {
     expect(clientCopy.errors.sentenceShort).not.toMatch(/\d/);
-    expect(clientCopy.newReport.pasteHint).not.toMatch(/ctrl|cmd|⌘/i);
+    expect(clientCopy.composer.reassurance).not.toMatch(/\d/);
   });
 
   it('has a headline and a next line for every status, and an announcement for a sent report', () => {
@@ -45,6 +45,16 @@ describe('client page copy (English only, Filip 2026-10-17)', () => {
     expect(clientCopy.report.announce).toMatch(/\S/);
   });
 
+  it('explains what happens next in three lines beside a report', () => {
+    expect(clientCopy.report.panel.lines).toHaveLength(3);
+  });
+
+  it('explains how to take a screenshot in three steps, with a line per device in step 2', () => {
+    expect(clientCopy.help.steps).toHaveLength(3);
+    expect(clientCopy.help.steps[1].map((line) => line.split(':')[0])).toEqual(['iPhone', 'Android', 'Windows', 'Mac']);
+    expect(clientCopy.report.sentOn).toContain('{date}');
+  });
+
   it('names the statuses a client can see and the two groups', () => {
     expect(clientCopy.status).toEqual({ new: 'Received', in_progress: 'In progress', done: 'Done' });
     expect(clientCopy.list.groups).toEqual({ open: 'In progress', done: 'Done' });
@@ -52,5 +62,12 @@ describe('client page copy (English only, Filip 2026-10-17)', () => {
 
   it('fills the contact note from the developer', () => {
     expect(clientCopy.welcome.contact.body).toContain('{name}');
+  });
+
+  it('says who the line reaches, explains three steps and counts reports in progress', () => {
+    expect(clientCopy.intro.greeting).toBe("This is your direct line to {name} for anything that doesn't work.");
+    expect(clientCopy.intro.steps).toHaveLength(3);
+    expect(clientCopy.intro.inProgressMany).toContain('{count}');
+    expect(clientCopy.header.back).toBe('Back {when} at {time}');
   });
 });

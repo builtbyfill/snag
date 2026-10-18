@@ -41,7 +41,7 @@ The reporter is the non-technical client, and the input is deliberately tiny. Th
 - Name **Snag**, tagline "Screenshot in, ticket out."
 - Tone: calm, trustworthy, simple. The client should feel heard ("we got it, we're on it"); the developer should feel in control (what the AI saw versus what it guessed).
 - All UI copy is English; no mention of AI, tickets, extraction or WhatsApp on the client side.
-- Monochrome: graphite chrome around a light workspace, told apart by surface, border, weight, size and icons.
+- Monochrome, told apart by surface, border, weight, size and icons. The client page is dark (a ChatGPT-style neutral dark palette, 2026-10-18); the dashboard will use the same dark set. No pure black, no pure white text, no shadows, no gradients.
 - Red means "extraction failed" and nothing else.
 
 ## Evidence on Hand

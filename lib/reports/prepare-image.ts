@@ -7,6 +7,7 @@ import { ACCEPTED_TYPES } from './validate';
 export const UPLOAD_MAX_EDGE = 2560; // the model's high-resolution limit; more pixels add nothing
 export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024; // under the server's 5 MB with room to spare
 export const THUMB_EDGE = 240;
+export const PREVIEW_EDGE = 1600; // the full-size copy kept on this device: sharp on any phone or laptop
 const JPEG_QUALITY = 0.85;
 
 export type UploadPlan =
@@ -31,11 +32,18 @@ export function thumbSize(width: number, height: number) {
   return fit(width, height, THUMB_EDGE);
 }
 
+export function previewSize(width: number, height: number) {
+  return fit(width, height, PREVIEW_EDGE);
+}
+
 export type PreparedScreenshot =
-  | { ok: true; file: File; thumb: string }
+  | { ok: true; file: File; thumb: string; preview: Blob }
   | { ok: false; error: 'unreadableImage' | 'tooLarge' };
 
-/** Browser only: decode (honouring EXIF orientation), shrink if needed, and make the history thumbnail. */
+/**
+ * Browser only: decode (honouring EXIF orientation), shrink if needed, and make the history
+ * thumbnail plus the full-size copy that the report opens on this device.
+ */
 export async function prepareScreenshot(file: File): Promise<PreparedScreenshot> {
   let bitmap: ImageBitmap;
   try {
@@ -55,7 +63,9 @@ export async function prepareScreenshot(file: File): Promise<PreparedScreenshot>
     }
     const t = thumbSize(bitmap.width, bitmap.height);
     const thumbBlob = await draw(bitmap, t.width, t.height, 'image/jpeg', 0.7);
-    return { ok: true, file: upload, thumb: await toDataUrl(thumbBlob) };
+    const p = previewSize(bitmap.width, bitmap.height);
+    const preview = await draw(bitmap, p.width, p.height, 'image/jpeg', 0.85);
+    return { ok: true, file: upload, thumb: await toDataUrl(thumbBlob), preview };
   } catch {
     return { ok: false, error: 'unreadableImage' };
   } finally {

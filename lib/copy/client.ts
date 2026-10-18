@@ -1,54 +1,70 @@
 // Every word on the client page. English only (Filip, 2026-10-17). The client side never
-// mentions AI, tickets, extraction or WhatsApp. "{name}", "{project}" and "{date}" are filled in by the page.
+// mentions AI, tickets, extraction or WhatsApp. "{name}", "{project}", "{date}", "{count}", "{when}"
+// and "{time}" are filled in by the page.
 import type { ReportErrorCode } from '@/lib/reports/validate';
 
 export const clientCopy = {
   pageTitle: 'Report a problem',
   header: {
     responseTime: 'Usually replies the same day',
+    // Outside office hours: "Back tomorrow at 9:00", "Back Monday at 9:00".
+    back: 'Back {when} at {time}',
+  },
+  // The block at the top of the conversation, always visible.
+  intro: {
+    greeting: "This is your direct line to {name} for anything that doesn't work.",
+    fallbackName: 'the team',
+    stepsLabel: 'How it works',
+    steps: ['Screenshot', 'One sentence', 'We fix it, you follow the status here'],
+    inProgressOne: '1 report in progress',
+    inProgressMany: '{count} reports in progress',
   },
   list: {
     title: 'Your reports',
     newReport: 'New report',
     groups: { open: 'In progress', done: 'Done' },
+    close: 'Close',
   },
   welcome: {
-    how: {
-      title: 'How it works',
-      body: 'Take a screenshot of the screen where it went wrong, then say in one sentence what you did and what happened.',
-    },
-    next: {
-      title: 'What happens next',
-      body: 'The status moves from Received to In progress to Done on this page. Keep the link to check back.',
-    },
     contact: {
       title: 'Contact',
       body: '{name} looks after {project}.',
       fallbackName: 'The team',
     },
   },
-  newReport: {
-    title: 'New report',
-    intro: 'One screenshot and one sentence is enough.',
-    back: 'Your reports',
+  composer: {
+    label: 'What happened?',
+    placeholder: 'What did you tap, and what happened instead?',
     attach: 'Add a screenshot',
-    attachHint: 'From your photos or files',
-    pasteHint: 'You can also paste or drop it here',
-    replace: 'Replace',
     remove: 'Remove screenshot',
     preparing: 'Preparing the screenshot…',
-    sentenceLabel: 'What happened?',
-    placeholder: 'e.g. I tapped Save on the appointment and nothing happened.',
     chipsLabel: 'Start with',
     chips: ["A button doesn't work", "A page won't load", 'Wrong information shown'],
-    send: 'Send report',
+    send: 'Send',
     sending: 'Sending…',
     slow: 'Still sending. Your screenshot and text stay here.',
-    reassurance: 'No sign-up needed. The team will get back to you if they need more details.',
+    reassurance: "We'll get back to you if we need more details.", // Filip's wording, 2026-10-18
     dropHint: 'Drop the screenshot here',
   },
+  // One report's chat: the client can add text to it, or start a new report for something else.
+  thread: {
+    title: 'Your report, sent {date}',
+  },
+  followUp: {
+    label: 'Add to this report',
+    placeholder: 'Add something to this report',
+    send: 'Send',
+    sending: 'Sending…',
+    added: 'Added {date}',
+    otherProblem: 'Something else broken?',
+    announce: 'Added to your report.',
+  },
+  feed: {
+    sent: 'Sent',
+    copyLink: 'Copy link to this report',
+    linkCopied: 'Link copied',
+  },
   report: {
-    back: 'Your reports',
     sentOn: 'Sent {date}',
     headline: {
       new: 'Report received',
@@ -62,6 +78,31 @@ export const clientCopy = {
     },
     progressLabel: 'Progress',
     announce: 'Report sent.',
+    openScreenshot: 'Open your screenshot full size',
+    closeScreenshot: 'Close',
+    contactLine: 'Need to add something? Email {email}',
+    panel: {
+      title: 'What happens next',
+      lines: [
+        'The team reads your report, usually the same day.',
+        'When someone starts on it, the status here changes to In progress.',
+        'When it is fixed, it changes to Done. Keep this link to check.',
+      ],
+    },
+  },
+  help: {
+    title: 'How to take a screenshot',
+    // One step per entry; step 2 has a line per device.
+    steps: [
+      ['Open the screen that shows the problem.'],
+      [
+        'iPhone: press the side and volume-up buttons together.',
+        'Android: press power and volume-down.',
+        'Windows: press Win + Shift + S and select the area.',
+        'Mac: press Cmd + Shift + 4.',
+      ],
+      ['Add it here: tap or click the image button next to the field, or paste it with Ctrl+V / Cmd+V.'],
+    ],
   },
   status: { new: 'Received', in_progress: 'In progress', done: 'Done' },
   screenshotAlt: 'Your screenshot',
@@ -81,6 +122,7 @@ export const clientCopy = {
     rateLimited: 'Too many reports from this device in the last hour. Try again in an hour.',
     notFound: "This report link doesn't work anymore. Ask for a new one.",
     server: "Couldn't send the report. Check your connection and try again.",
+    followUpEmpty: 'Write a few words before sending.',
   } satisfies Record<ReportErrorCode, string>,
 };
 

@@ -14,6 +14,7 @@ export const REPORT_ERROR_CODES = [
   'rateLimited',
   'notFound',
   'server',
+  'followUpEmpty', // a follow-up with no real text
 ] as const;
 export type ReportErrorCode = (typeof REPORT_ERROR_CODES)[number];
 
@@ -21,6 +22,7 @@ export const MAX_BYTES = 5 * 1024 * 1024;
 export const MAX_EDGE_PX = 8000; // the API's hard limit per image edge
 export const SENTENCE_MIN = 10;
 export const SENTENCE_MAX = 1000;
+export const FOLLOW_UP_MIN = 2; // a follow-up only needs to say something, not describe a problem
 export const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
 
 export function checkSentence(sentence: string): ReportErrorCode | null {

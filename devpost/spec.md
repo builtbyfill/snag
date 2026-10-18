@@ -135,7 +135,7 @@ DEVELOPER_EMAIL=             # optional; mail link on the client's Contact card
 From `prd.md > Look and Feel` (redesigned 2026-10-17: monochrome, piz-erp shell and type scale). Implementation notes:
 
 - **Fonts.** `lib/fonts.ts`: `next/font/google` for IBM Plex Sans (variable, `latin` + `latin-ext`) and IBM Plex Mono (400 only), exposed as `--font-sans` and `--font-mono` and applied on `<html>` in the one root layout.
-- **Tokens.** Every hex in the PRD table is a CSS variable in `globals.css` and a Tailwind color through `@theme inline` (`bg-chrome`, `text-ink-muted`, `border-line-strong`, `bg-sunken`, `text-danger`, ...). shadcn's `--primary`, `--border`, `--ring` etc. are mapped onto them. The contrast figures are in the file header. Light only: the `dark` custom variant is kept so shadcn's `dark:` classes never follow the OS.
+- **Tokens.** Every hex in the PRD table is a CSS variable in `globals.css` and a Tailwind color through `@theme inline` (`bg-chrome`, `text-ink-muted`, `border-line-strong`, `bg-sunken`, `text-danger`, ...). shadcn's `--primary`, `--border`, `--ring` etc. are mapped onto them. The contrast figures are in the file header. The `dark` custom variant applies only under a `.dark` wrapper (never the OS setting). `.dark` redefines the base tokens for the fully dark developer side (values and contrast in `prd.md > Look and Feel`), and the derived tokens (shadcn's `--background`, `--primary`, the state fills…) are declared on `:root, .dark` so they resolve against the dark values inside the wrapper; declared only on `:root` they would keep the light colors.
 - **Type scale.** Five utilities, `text-display`, `text-title`, `text-label`, `text-body`, `text-meta`, defined in `@theme`. `body` and `meta` read `--body-size` / `--meta-size`, which `[data-surface="client"]` bumps. `lib/utils.ts` builds `cn` with `createCn` and registers the five names as font sizes, otherwise `text-body` would be merged away as a color.
 - **Chrome.** Dark regions carry `data-surface="dark"`, which switches the focus outline to `chrome-fg`. The focus outline is unlayered CSS (`:focus-visible`, 2px, offset 2px) so a layered `outline-none` from a component can't hide it.
 - **Badges.** `Badge` variants `extracted | pending | failed | ask-client`: pending has a dashed border and spinner, failed is the one red, ask-client an outlined pill with an icon. Status and priority render glyph + text with no color class.
@@ -150,13 +150,15 @@ Filip's direction, 2026-10-17: Snag feels like a chat on both sides. The ticket 
 
 Redesigned 2026-10-17 from a chat into a small portal (`prd.md > Screens and Layout`). Route group `app/(client)/` with a non-root `layout.tsx` (`data-surface="client"`, `robots: noindex`, viewport `themeColor` `#111214`). There is one root layout, `app/layout.tsx`, with `<html lang="en">`; the per-surface root layouts and `global-not-found.tsx` are gone because every page is English.
 
-**Files.** `page.tsx` (server: project by slug, `DEVELOPER_NAME`, `DEVELOPER_EMAIL` checked against a simple address pattern), `client-portal.tsx` (client: state, history, statuses, drop/paste, send, layout), `new-report.tsx`, `report-list.tsx`, `report-timeline.tsx`, `welcome-notes.tsx`, `not-found.tsx`. Shared: `components/snag-mark.tsx`, `components/status-glyph.tsx`, `components/date-tile.tsx`, `lib/reports/groups.ts` (`groupReports`: In progress = everything not done, an unknown status counts as open; `dateTile`). Copy: `lib/copy/client.ts` only.
+**Files.** `page.tsx` (server: project by slug, `DEVELOPER_NAME`, `DEVELOPER_EMAIL` checked against a simple address pattern), `client-portal.tsx` (client: state, history, statuses, drop/paste, send, layout), `welcome-block.tsx`, `feed-item.tsx`, `composer.tsx`, `report-details.tsx`, `report-list.tsx`, `next-steps.tsx`, `help-block.tsx`, `contact.tsx`, `not-found.tsx`. Shared: `components/snag-mark.tsx`, `components/status-glyph.tsx`, `components/date-tile.tsx`, `lib/reports/groups.ts` (`groupReports`: In progress = everything not done, an unknown status counts as open; `dateTile`), `lib/office-hours.ts` (`officeStatus(now, hours)`: open, or back today / tomorrow / <weekday> at the opening time, computed with `Intl.DateTimeFormat` in the office's time zone). Copy: `lib/copy/client.ts` only.
 
-**Layout.** `h-dvh` flex column. The graphite bar (`data-surface="dark"`, 56px) holds the mark, project, developer name and response time. The workspace below is `canvas`; at 1024px and wider the page background is `chrome` and the workspace is inset (`mx-2 mb-2`, 16px radius, `chrome-line` border) with a 320px `aside` (notes on a first visit, otherwise the list) and a `main` that scrolls on its own (`scroll-pb-32` on phones keeps room for the pinned Send row). `main` shows `ReportTimeline` for the selected report or `NewReport`. Below 1024px, once history exists and the client isn't composing (`composing` state), `main` shows `ReportList asPage` instead of the form; "New report", a chosen, pasted or dropped screenshot all set `composing`. Choosing a screenshot always returns to `NewReport`.
+**Layout.** The client layout wraps the page in `.dark` (the dark token set). `h-dvh` flex column: the bar (`data-surface="dark"`, 52px including its hairline), then from 1024px a full-bleed grid (`lg:grid-cols-[300px_minmax(0,1fr)_320px]` with a report's chat open, `[300px_minmax(0,1fr)]` for a new chat; `grid-rows-[minmax(0,1fr)]`). The left `aside` (`bg-pane`) holds the list with `help-block.tsx` pinned at the bottom, or only the help block, at the top, when this device has no reports. The open chat is `selectedId` (a report id, `null` for a new chat, `undefined` until the client chooses, when the `?report=` id from `useSearchParams` decides). `main` shows either a new chat (one scroll column: the welcome block, then `composer.tsx`, which is `sticky bottom-0` on phones and in the flow under the card from 1024px) or a report's chat (`feed-item.tsx` in a scroll area with `follow-up-composer.tsx` pinned under it). A dropped or pasted screenshot opens a new chat. The right `aside` shows `report-details.tsx` for the open report. Below 1024px only `main` shows and the list opens in a shadcn `Sheet` (side left, no shadow) from an icon with the count at the left of the bar. Office hours are computed after hydration and every minute (the server renders the open-hours line). Controls are 36px tall and 44px on touch screens (`pointer-coarse:`).
 
-**New report.** Form with `noValidate` and `aria-busy` while sending. The screenshot area is a `<button>` that calls `react-dropzone`'s `open()`; `useDropzone({ noClick: true, noKeyboard: true })` on the page root makes the page a drop target, plus a `paste` listener. Chosen images go through `lib/reports/prepare-image.ts` (shrink to 2560 px JPEG when larger or heavier than 4 MB, 240 px thumbnail for the history). Chips render only while the sentence is empty; tapping one sets "<chip>: ", focuses the field synchronously (iOS opens the keyboard only for a focus inside the tap) and places the caret after the text on the next tick. Send checks `checkSentenceDetail(sentence, chips)` (browser only: after a chip, the rest must pass the 10-character rule). One `role="alert"` message at a time, rendered under the screenshot area or under the field it is about (scrolled into view with `block: "nearest"`), or above Send for form-level errors; a missing screenshot moves focus to the screenshot area. Remove puts focus back on the screenshot area. The draft sentence is kept in `snag:draft:v1:<slug>`. localStorage is read with `useSyncExternalStore` (`lib/use-stored-string.ts`) so hydration never mismatches.
+**Composer.** Form with `noValidate` and `aria-busy` while sending. The image button calls `react-dropzone`'s `open()`; `useDropzone({ noClick: true, noKeyboard: true })` on the page root makes the page a drop target, plus a `paste` listener. Chosen images go through `lib/reports/prepare-image.ts` (shrink to 2560 px JPEG when larger or heavier than 4 MB, 240 px thumbnail for the history, 1600 px full-size copy). Field and buttons form one `data-slot="input-group"` (the global focus rule outlines the group); the textarea is `rows={1}` and grows to 160px. Chips render only while the field is empty; tapping one runs `applyStarter` (`lib/reports/starters.ts`), focuses the field synchronously (iOS opens the keyboard only for a focus inside the tap) and places the caret after the text on the next tick. Send checks `checkSentenceDetail(sentence, chips)`. One `role="alert"` message at a time above the field. Enter sends on `(pointer: fine)`. The draft sentence is kept in `snag:draft:v1:<slug>`. localStorage is read with `useSyncExternalStore` (`lib/use-stored-string.ts`) so hydration never mismatches.
 
-**Report timeline.** `article` with the status headline as `h1` (`tabIndex={-1}`; focused after a send and when a report opens on a phone, because the view that had focus is gone), one detail line, her message (`sunken` bubble, end-aligned, `animate-settle` only right after sending) with "Sent <date>" (`formatSentAt`: "today, 09:05", "16 Oct, 14:32", "30 Dec 2025, 08:00"), and an `<ol aria-label="Progress">` with all three steps (`aria-current="step"` on the current one). A persistent `role="status"` region in `ClientPortal`, outside the form/timeline swap, announces "Report sent." No reply box.
+**Full-size copy.** `prepareScreenshot` also returns `preview`, a JPEG fitted to 1600 px (`previewSize`). After a confirmed send it is stored in IndexedDB (`lib/reports/screenshot-store.ts`: database `snag`, store `screenshots`, key `<slug>:<ticketId>`), and copies whose report dropped out of the 20-entry history are deleted. IndexedDB because localStorage has about 5 MB and Cache Storage is missing on plain-http LAN addresses; every call swallows storage errors. Screenshots stay non-public: nothing is fetched from the server.
+
+**Report chat and details.** `feed-item.tsx` renders one report's chat as an `article` (with an `sr-only` `h1` "Your report, sent <date>"): the raised `figure` (`border-line-medium bg-surface p-1`) with the full-size copy (`max-w-[280px] max-h-[400px]`) as a button that opens a native `<dialog>` (close button, Escape, backdrop click, focus back to the frame), or the thumbnail; the sentence (`max-w-prose`, sunken); the time and **Copy link** (Clipboard API, with an `execCommand` fallback on plain-http LAN addresses); the system rows; then the entry's `followUps`. `follow-up-composer.tsx` pins to the bottom of a report's chat: a one-line field that grows and **Send** (calls `addFollowUpAction`; on success the follow-up is added to this device's history with `addFollowUpToHistory`, at most 20 per report, and announced), plus **New report**. `report-details.tsx` is the right pane: the headline as `h2`, one detail line, the `<ol aria-label="Progress">` with `Marker`s (completed / current / future) and connectors (solid ink up to the current step, dashed `line-quiet` after), times where known and "—" otherwise, then `next-steps.tsx`. A persistent `role="status"` region in `ClientPortal` announces "Report sent." and "Added to your report."
 
 **This device's history (`lib/reports/history.ts`, browser only).**
 - Key `snag:reports:v1:<slug>` in `localStorage`. Value: an array of `{ ticketId: uuid, sentence: string, thumb: string, sentAt: ISO string }`, oldest first, at most 20 (the oldest drops off).
@@ -206,7 +208,7 @@ Pass 1, `domain-modeling`. Vocabulary in `CONTEXT.md`. The consequential choice 
 
 **`projects`** — one per client app. `owner_id` is a nullable `uuid` column with **no foreign key** (there is no users table to point at). It costs nothing today and lets Better Auth land later with an `UPDATE`, not a schema redesign (`scope.md > Later`).
 
-**`tickets`** — the developer's working record. Holds the client's source material (sentence, language, reporter IP hash), workflow (`status`), extraction bookkeeping (`extraction_state`, `extraction_error`, `confidence`), and the **working copy of every ticket field**. Inferred fields are two columns each: the value and its evidence.
+**`tickets`** — the developer's working record. Holds the client's source material (sentence, language, reporter IP hash), workflow (`status`), extraction bookkeeping (`extraction_state`, `extraction_error`, `failed_reason` (`extraction_error` | `interrupted_by_restart`, migration `0001`), `confidence`), and the **working copy of every ticket field**. Inferred fields are two columns each: the value and its evidence.
 
 **`attachments`** — one row per ticket (unique on `ticket_id`). Kept as its own table rather than columns because Filip listed it as an entity and because "one screenshot" is a hackathon limit, not a domain truth. Stores the storage key, sniffed MIME type, pixel size and byte size. The original file name from the client is **not stored** (it is untrusted and unneeded).
 
@@ -370,7 +372,10 @@ export default defineConfig({
 | Session | signed cookie in the browser; nothing server-side | login / sign out | persists 30 days |
 | Login failure counts | in-memory `Map` in the Node process | login attempts | lost on restart (accepted; first security cut) |
 | Report rate limit | counted from `tickets.reporter_ip_hash` | implicit | persists |
-| Client form state | React state in the browser | typing | lost on reload (by design; the client never comes back to edit) |
+| Client form state | React state in the browser; the unsent sentence in `localStorage` (`snag:draft:v1:<slug>`) | typing | the sentence survives a reload; the chosen screenshot does not |
+| Follow-ups | `follow_ups` (migration `0002_follow_ups`: id, ticket_id → tickets on delete cascade, body, reporter_ip_hash, created_at; indexes on (ticket_id, created_at) and (reporter_ip_hash, created_at)); also each history entry's `followUps` on the sending device | `addFollowUpAction` | persists; shown in the client's chat and, from slice 7, on the dashboard |
+| This device's reports | `localStorage` `snag:reports:v1:<slug>` (id, sentence, 240px thumbnail, time; max 20) | a confirmed send | persists in that browser only |
+| Full-size screenshot copies | IndexedDB `snag` / `screenshots`, key `<slug>:<ticketId>` (1600px JPEG) | a confirmed send; pruned with the history | persists in that browser only; never sent anywhere |
 | List filters | URL search params | filter controls | persists in the URL |
 
 ## Modules and Seams
@@ -412,7 +417,7 @@ Internal files: `schema.ts` (Zod + the derived JSON schema), `prompt.ts` (system
 
 ### `lib/extraction/run.ts` — `runExtraction(ticketId)`
 
-The glue between the pure function and the database. Loads ticket + attachment, reads the file through storage, calls `extractTicket`, inserts one `extractions` row per attempt, and updates the ticket: on success fills columns that are `NULL`, copies `confidence` and `language`, sets `extracted`; on failure sets `extraction_failed` and `extraction_error`. Also the only place that knows the `pending`→`extracted|failed` transition, so **Retry** reuses it unchanged. Idempotent guard: it refuses to run if the ticket is not `pending` (protects against a double `after()`).
+The glue between the pure function and the database. Loads ticket + attachment, reads the file through storage, calls `extractTicket`, inserts one `extractions` row per attempt, and updates the ticket: on success fills columns that are `NULL`, copies `confidence` and `language`, sets `extracted`; on failure sets `extraction_failed`, `extraction_error` and `failed_reason = 'extraction_error'` (a success clears both). Also the only place that knows the `pending`→`extracted|failed` transition, so **Retry** reuses it unchanged. Idempotent guard: it refuses to run if the ticket is not `pending` (protects against a double `after()`).
 
 ### `lib/storage` — files behind two methods
 
@@ -459,7 +464,7 @@ Pass 3. Flagged as promised. Criteria from Filip: works in Compose on a 2 GB box
 
 Two cheap guards close the one gap (a) has, a process crash or redeploy in the middle of an extraction:
 
-1. **Stale-pending recovery on boot.** `instrumentation.ts` `register()` runs once when the server starts (**verified**: Next.js runs code on server startup via `register`). It marks tickets `pending` for more than 10 minutes as `extraction_failed` with the error "Extraction interrupted by a restart. Retry when ready." Filip then uses the normal **Retry** button.
+1. **Interrupted-extraction recovery on boot** (Filip, 2026-10-18, replacing the 10-minute rule). `instrumentation.ts` `register()` runs once when the server starts, before it takes requests (**verified** under `next dev` and the standalone `node server.js`; skipped during `next build`). Extraction runs inside the server process, so every ticket still `pending` at that moment lost its extraction with the previous process, however recent: `failInterruptedExtractions` marks each one `extraction_failed` with `failed_reason = 'interrupted_by_restart'` and the error "Extraction interrupted by a restart. Retry when ready." Model, API and file failures carry `failed_reason = 'extraction_error'` instead, so the dashboard can tell the two apart. Nothing is re-extracted automatically: **Retry** stays manual, so a report that crashes the server can't cause a restart loop. **Assumption: exactly one app process at a time.** Compose stops the old container before it starts the new one; a second instance started beside a running one would mark that one's live extractions, so scaling out means moving to a job table (option c) first. Slice 5 showed why the 10-minute rule was wrong: after `docker compose kill` and an immediate restart, the ticket stayed `pending` until a later restart.
 2. **The `extractions` log.** Even if a crash happens after an attempt was recorded, the evidence of what happened is in the table.
 
 What (a) does *not* give us and we accept: no concurrency control across instances (there is one), no retry after the process dies (the Retry button is the retry). The one-line upgrade path is `runExtraction` becoming a job handler; nothing in `extractTicket` changes.
@@ -594,6 +599,13 @@ Pass 6, `vibesec-skill`, applied to the four areas Filip named. Each line is a b
 - [ ] Sentence: Zod `min(10).max(1000)`, stored as text, rendered by React (escaped). Shown in Markdown export inside a quote; no HTML rendering anywhere.
 - [ ] No AI call in the request path, so a malicious image cannot run up the bill faster than the rate limit allows (10 extractions per IP per hour ≈ 10 cents).
 
+**Client follow-ups (`addFollowUpAction` → `lib/reports/follow-up.ts`, 2026-10-18)**
+- [ ] The report id must be a UUID and belong to the link's project (one query joining `projects`); a malformed id, an unknown link and another project's report all return `notFound`, so it can't probe for reports.
+- [ ] The id works like a key held only by the device that sent the report, as for statuses. The action only appends: it never changes the ticket's fields, status or extraction.
+- [ ] Text is trimmed, 2–1000 characters, stored as text and rendered by React (escaped), never as HTML.
+- [ ] At most 20 follow-ups per hashed address per hour (`reporter_ip_hash`, same HMAC key as reports); the `(reporter_ip_hash, created_at)` index keeps the count a range scan.
+- [ ] Errors are codes; details stay in the server log.
+
 **Client chat statuses (`getReportStatusesAction`, slice 3a)**
 - [ ] Input: `ids` is an array of at most 20 UUIDs, `slug` a string; anything else returns `[]`.
 - [ ] The query joins on the slug's project, so ids from another project return nothing; there is no way to list a project's tickets.
@@ -690,7 +702,7 @@ volumes:
   uploads:
 ```
 
-**Dockerfile, three stages.** `deps` (`npm ci`), `builder` (`next build` with `output: 'standalone'`), `migrate` (from `deps`, copies `drizzle/`, `drizzle.config.ts`, `lib/`, `scripts/`, `seed/images/`; also runs the seed, which needs the uploads volume mounted on this service too), `runner` (`node:24-alpine`, copies `.next/standalone`, `.next/static`, `public/`; runs as non-root `node`; `CMD ["node", "server.js"]`). `sharp` needs no extra packages on Alpine with Node 24 (prebuilt binaries); **verify in build** on first `docker compose up`.
+**Dockerfile, three stages.** `deps` (`npm ci`), `builder` (`next build` with `output: 'standalone'`), `migrate` (from `deps`, copies `drizzle/`, `drizzle.config.ts`, `tsconfig.json`, `lib/`, `scripts/`; `seed/images/` is added in slice 7 when it exists; also runs the seed, which needs the uploads volume mounted on this service too), `runner` (`node:24-alpine`, copies `.next/standalone`, `.next/static`, `public/`; `HOSTNAME=0.0.0.0` so the standalone server listens beyond localhost; runs as non-root `node`; `CMD ["node", "server.js"]`). Both `migrate` and `runner` create `/data/uploads` owned by `node`, because an empty named volume takes its owner from the first container that mounts it. `.dockerignore` keeps `.env`, `.git`, `node_modules`, `.next`, `.uploads`, eval images and local tooling out of the build context. **Verified in slice 5:** `sharp` works on `node:24-alpine` (the standalone output carries `@img/sharp-linuxmusl-x64`), `instrumentation.ts` runs under the standalone server, neither image contains `.env`, and the runner image is 302 MB.
 
 **Explained (Filip's request).**
 - **Why a separate `migrate` service instead of migrating on app start.** The standalone output prunes `node_modules` to what the app imports, so `drizzle-kit` is not there. A one-shot service from the full-dependency stage runs the migration, exits 0, and `depends_on … service_completed_successfully` gates the app on it. Compose shows migration failures as their own log, not buried in the app's.
@@ -801,14 +813,18 @@ snag/
 │   ├── globals.css                    # @theme tokens from prd.md > Look and Feel
 │   ├── api/health/route.ts            # SELECT 1 → 200, for Compose healthcheck
 │   ├── (client)/
-│   │   ├── layout.tsx                 # data-surface="client", noindex, theme color
+│   │   ├── layout.tsx                 # .dark, data-surface="client", noindex, theme color
 │   │   └── r/[slug]/
 │   │       ├── page.tsx               # server: project by slug, DEVELOPER_NAME/EMAIL (prd: Reporting a problem)
 │   │       ├── client-portal.tsx      # client: state, history + statuses, drop/paste, send, layout
-│   │       ├── new-report.tsx         # screenshot area, sentence, chips, Send
+│   │       ├── welcome-block.tsx      # greeting, three steps, reply line from office hours
+│   │       ├── feed-item.tsx          # one report in the conversation: screenshot, sentence, link, status rows
+│   │       ├── composer.tsx           # pinned: image button, growing field, Send, chips
+│   │       ├── report-details.tsx     # right pane: headline, status timeline
 │   │       ├── report-list.tsx        # In progress / Done groups with date tiles
-│   │       ├── report-timeline.tsx    # one report: her message + quiet steps
-│   │       ├── welcome-notes.tsx      # first visit: How it works, What happens next, Contact
+│   │       ├── next-steps.tsx         # under the status: what happens next, email contact
+│   │       ├── help-block.tsx         # pinned under the list: how to take a screenshot, contact
+│   │       ├── contact.tsx            # "<name> looks after <project>." + mail link
 │   │       └── not-found.tsx          # broken report link
 │   ├── login/
 │   │   ├── page.tsx
@@ -829,7 +845,7 @@ snag/
 │       ├── report.ts                  # submitReportAction (+ after → runExtraction), getReportStatusesAction
 │       ├── tickets.ts                 # updateTicketFieldAction, retryExtractionAction
 ├── proxy.ts                           # redirect /dashboard/* without a valid cookie
-├── instrumentation.ts                 # register(): stale-pending recovery
+├── instrumentation.ts                 # register(): marks extractions interrupted by a restart
 ├── lib/
 │   ├── env.ts                         # Zod-parsed process.env, fail fast
 │   ├── db/
@@ -914,7 +930,7 @@ Nothing else leaves the box.
 
 1. **Separate `extractions` table, edits on `tickets` columns, attempts never edited** (ADR 0001). Approved.
 2. **`ask_client` as a stored generated column.** Approved, with the condition that every input to the rule lives on the ticket row. Confirmed in **Data Model** and covered by a test.
-3. **`after()` in the server action** plus the stale-pending recovery. Approved for the hackathon. Request timeouts do not cancel the work, and a redeploy mid-call is covered by the startup check. Written into **Save-Then-Extract**.
+3. **`after()` in the server action** plus the interrupted-extraction recovery on boot. Approved for the hackathon. Request timeouts do not cancel the work, and a redeploy mid-call is covered by the startup check. Written into **Save-Then-Extract**.
 4. **`output_config.format` with `zodOutputFormat` + `messages.parse`**, SDK `maxRetries: 0`. Approved.
 5. **Downscale limit 1568 px, env-configurable.** Approved. See the open issue below on how decision 7 changed its premise.
 6. **Separate `SESSION_SECRET`** instead of keys derived from the access code. The derived-key recommendation was **not approved**. Filip's rule: "One key, one purpose; rotating the access code must not log everyone out or reset the rate-limit hashes." Applying the same rule, the IP hash gets its own `IP_HASH_SECRET` (agent's reading of the rule; see **lib/auth**).

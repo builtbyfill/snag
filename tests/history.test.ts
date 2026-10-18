@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  addFollowUpToHistory,
   addToHistory,
+  FOLLOW_UP_LIMIT,
   HISTORY_LIMIT,
   historyKey,
   readHistory,
@@ -190,5 +192,49 @@ describe('addToHistory', () => {
     addToHistory('second-slug', entry(2), storage);
     expect(readHistory('first-slug', storage)).toEqual([entry(1)]);
     expect(readHistory('second-slug', storage)).toEqual([entry(2)]);
+  });
+});
+
+describe('addFollowUpToHistory (text a client added to a report from this device)', () => {
+  const followUp = (n: number) => ({
+    id: `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+    body: `Dodatak ${n}.`,
+    sentAt: new Date(Date.UTC(2026, 9, 18, 12, 0, n)).toISOString(),
+  });
+
+  it('adds the follow-up to the right report and leaves the others as they were', () => {
+    const storage = new MemoryStorage();
+    addToHistory(SLUG, entry(1), storage);
+    addToHistory(SLUG, entry(2), storage);
+
+    const result = addFollowUpToHistory(SLUG, entry(1).ticketId, followUp(1), storage);
+
+    expect(result.ok).toBe(true);
+    const [first, second] = readHistory(SLUG, storage);
+    expect(first.followUps).toEqual([followUp(1)]);
+    expect(second.followUps ?? []).toEqual([]);
+  });
+
+  it(`keeps at most ${FOLLOW_UP_LIMIT} follow-ups per report, dropping the oldest`, () => {
+    const storage = new MemoryStorage();
+    addToHistory(SLUG, entry(1), storage);
+    for (let n = 1; n <= FOLLOW_UP_LIMIT + 2; n++) addFollowUpToHistory(SLUG, entry(1).ticketId, followUp(n), storage);
+
+    const kept = readHistory(SLUG, storage)[0].followUps ?? [];
+    expect(kept).toHaveLength(FOLLOW_UP_LIMIT);
+    expect(kept[0]).toEqual(followUp(3));
+  });
+
+  it('does nothing for a report this device does not have', () => {
+    const storage = new MemoryStorage();
+    addToHistory(SLUG, entry(1), storage);
+    expect(addFollowUpToHistory(SLUG, entry(9).ticketId, followUp(1), storage).ok).toBe(false);
+    expect(readHistory(SLUG, storage)[0].followUps ?? []).toEqual([]);
+  });
+
+  it('still reads entries stored before follow-ups existed', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(historyKey(SLUG), JSON.stringify([entry(1)]));
+    expect(readHistory(SLUG, storage)).toEqual([entry(1)]);
   });
 });

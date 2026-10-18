@@ -1,9 +1,12 @@
 "use server";
 
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { clientIp } from "@/lib/auth/rate-limit";
 import { getDb } from "@/lib/db/client";
 import { readReportEnv } from "@/lib/env";
+import { runExtraction } from "@/lib/extraction/run";
+import { addFollowUp, type FollowUpResult } from "@/lib/reports/follow-up";
 import { getReportStatuses, type ReportStatus } from "@/lib/reports/statuses";
 import { submitReport } from "@/lib/reports/submit";
 import type { ReportErrorCode } from "@/lib/reports/validate";
@@ -17,8 +20,9 @@ export type ReportActionResult =
 export async function submitReportAction(slug: string, formData: FormData): Promise<ReportActionResult> {
   try {
     const env = readReportEnv();
+    const storage = createLocalStorage(env.UPLOAD_DIR);
     const result = await submitReport(
-      { db: getDb(), storage: createLocalStorage(env.UPLOAD_DIR), ipHashSecret: env.IP_HASH_SECRET },
+      { db: getDb(), storage, ipHashSecret: env.IP_HASH_SECRET },
       {
         slug,
         sentence: formData.get("sentence"),
@@ -26,7 +30,18 @@ export async function submitReportAction(slug: string, formData: FormData): Prom
         ip: clientIp(await headers()),
       },
     );
-    // Extraction is scheduled here with after() in slice 4. The client never waits on it.
+    if (result.ok) {
+      // Save first, extract second: after() runs once the response has been sent, so the
+      // client's confirmation never waits on the model. Failures land on the ticket itself.
+      const { ticketId } = result;
+      after(async () => {
+        try {
+          await runExtraction(ticketId, { db: getDb(), storage });
+        } catch (error) {
+          console.error(`runExtraction failed for ticket ${ticketId}`, error);
+        }
+      });
+    }
     // The ticket id goes back so this device can keep its own history and ask for its status later.
     return result.ok ? { ok: true, ticketId: result.ticketId } : { ok: false, error: result.error, field: result.field };
   } catch (error) {
@@ -45,5 +60,22 @@ export async function getReportStatusesAction(slug: string, ids: string[]): Prom
   } catch (error) {
     console.error("getReportStatusesAction failed", error);
     return [];
+  }
+}
+
+/**
+ * Public: adds text to a report this device sent. Everything is validated in addFollowUp (the
+ * report must belong to this link's project; rate-limited per address). Never throws.
+ */
+export async function addFollowUpAction(slug: string, ticketId: string, body: string): Promise<FollowUpResult> {
+  try {
+    const env = readReportEnv();
+    return await addFollowUp(
+      { db: getDb(), ipHashSecret: env.IP_HASH_SECRET },
+      { slug, ticketId, body, ip: clientIp(await headers()) },
+    );
+  } catch (error) {
+    console.error("addFollowUpAction failed", error);
+    return { ok: false, error: "server" };
   }
 }

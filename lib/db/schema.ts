@@ -10,6 +10,9 @@ export const ticketStatus = pgEnum('ticket_status', ['new', 'in_progress', 'done
 export const extractionState = pgEnum('extraction_state', ['pending', 'extracted', 'extraction_failed']);
 export const priority = pgEnum('priority', ['low', 'medium', 'high']);
 export const extractionResult = pgEnum('extraction_result', ['succeeded', 'failed']);
+// Why a ticket is extraction_failed: the model, API or file (extraction_error), or the server
+// restarting while it ran (interrupted_by_restart). Lets the dashboard tell the two apart.
+export const failedReason = pgEnum('failed_reason', ['extraction_error', 'interrupted_by_restart']);
 
 export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -32,6 +35,7 @@ export const tickets = pgTable('tickets', {
   status: ticketStatus('status').notNull().default('new'),
   extractionState: extractionState('extraction_state').notNull().default('pending'),
   extractionError: text('extraction_error'),
+  failedReason: failedReason('failed_reason'), // set with extraction_failed, cleared on success
   confidence: real('confidence'),
   // observed fields (working copy)
   title: text('title'),
@@ -86,4 +90,17 @@ export const extractions = pgTable('extractions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex('extractions_ticket_attempt_idx').on(t.ticketId, t.attempt),
+]);
+
+// Text a client adds to their own report later, from the device that sent it (Filip, 2026-10-18).
+// Text only: a new screenshot is a new report. Shown in the client's chat and on the dashboard.
+export const followUps = pgTable('follow_ups', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ticketId: uuid('ticket_id').notNull().references(() => tickets.id, { onDelete: 'cascade' }),
+  body: text('body').notNull(),
+  reporterIpHash: varchar('reporter_ip_hash', { length: 64 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('follow_ups_ticket_created_idx').on(t.ticketId, t.createdAt),
+  index('follow_ups_ip_hash_created_idx').on(t.reporterIpHash, t.createdAt),
 ]);

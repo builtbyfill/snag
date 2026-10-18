@@ -4,15 +4,21 @@
 import { z } from 'zod';
 
 export const HISTORY_LIMIT = 20;
+export const FOLLOW_UP_LIMIT = 20; // per report
+
+const followUpSchema = z.object({ id: z.uuid(), body: z.string(), sentAt: z.iso.datetime() });
 
 const entrySchema = z.object({
   ticketId: z.uuid(),
   sentence: z.string(),
   thumb: z.string().startsWith('data:image/'),
   sentAt: z.iso.datetime(),
+  // Added 2026-10-18; entries stored before that simply have none.
+  followUps: z.array(followUpSchema).optional(),
 });
 
-export type HistoryEntry = { ticketId: string; sentence: string; thumb: string; sentAt: string };
+export type FollowUp = { id: string; body: string; sentAt: string };
+export type HistoryEntry = { ticketId: string; sentence: string; thumb: string; sentAt: string; followUps?: FollowUp[] };
 
 export function historyKey(slug: string): string {
   return `snag:reports:v1:${slug}`;
@@ -65,6 +71,33 @@ export function addToHistory(
   if (current.some((e) => e.ticketId === entry.ticketId)) return { ok: true, entries: current };
 
   const entries = [...current, valid.data].slice(-HISTORY_LIMIT);
+  if (!storage) return { ok: false, entries };
+  try {
+    storage.setItem(historyKey(slug), JSON.stringify(entries));
+    return { ok: true, entries };
+  } catch {
+    return { ok: false, entries };
+  }
+}
+
+/**
+ * Appends a follow-up to one report in this device's history (newest FOLLOW_UP_LIMIT kept).
+ * Fails without throwing when the report isn't here or storage refuses; `entries` is the
+ * resulting list either way, so the page can still show it for this visit.
+ */
+export function addFollowUpToHistory(
+  slug: string,
+  ticketId: string,
+  followUp: FollowUp,
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null = defaultStorage(),
+): { ok: boolean; entries: HistoryEntry[] } {
+  const current = readHistory(slug, storage);
+  const valid = followUpSchema.safeParse(followUp);
+  if (!valid.success || !current.some((e) => e.ticketId === ticketId)) return { ok: false, entries: current };
+
+  const entries = current.map((e) =>
+    e.ticketId === ticketId ? { ...e, followUps: [...(e.followUps ?? []), valid.data].slice(-FOLLOW_UP_LIMIT) } : e,
+  );
   if (!storage) return { ok: false, entries };
   try {
     storage.setItem(historyKey(slug), JSON.stringify(entries));

@@ -7,7 +7,7 @@ export function DateTile({ iso, className }: { iso: string; className?: string }
   return (
     <span
       aria-hidden
-      className={cn("flex size-11 shrink-0 flex-col items-center justify-center rounded-md bg-sunken text-ink", className)}
+      className={cn("flex size-10 shrink-0 flex-col items-center justify-center rounded-md bg-sunken text-ink", className)}
     >
       <span className="text-body leading-none font-semibold">{day}</span>
       <span className="mt-0.5 text-label text-ink-muted uppercase">{month}</span>

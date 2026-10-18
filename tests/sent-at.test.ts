@@ -4,8 +4,8 @@ import { formatSentAt } from '@/lib/reports/sent-at';
 const now = new Date(2026, 9, 17, 18, 0); // local time, 17 Oct 2026 18:00
 
 describe('formatSentAt (when a report was sent, same words as the date tiles)', () => {
-  it('says "today" with the time for today', () => {
-    expect(formatSentAt(new Date(2026, 9, 17, 9, 5).toISOString(), now)).toBe('today, 09:05');
+  it('shows day, short month and time, today included', () => {
+    expect(formatSentAt(new Date(2026, 9, 17, 1, 9).toISOString(), now)).toBe('17 Oct, 01:09');
   });
 
   it('shows day and short month for earlier days this year', () => {
