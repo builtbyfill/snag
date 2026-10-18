@@ -33,3 +33,40 @@ export async function reportLimitHit(db: Db, ipHash: string, now: Date = new Dat
     .where(and(eq(tickets.reporterIpHash, ipHash), gt(tickets.createdAt, since)));
   return row.n >= REPORTS_PER_HOUR;
 }
+
+export const LOGIN_FAILURES_ALLOWED = 5;
+export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+/**
+ * Failed logins per address, in memory: at most LOGIN_FAILURES_ALLOWED in any LOGIN_WINDOW_MS.
+ * One app instance (spec.md), so one Map is the whole truth; a restart forgets it.
+ */
+export function createLoginLimiter(allowed = LOGIN_FAILURES_ALLOWED, windowMs = LOGIN_WINDOW_MS) {
+  const failures = new Map<string, number[]>();
+  const recent = (ip: string, now: number) => (failures.get(ip) ?? []).filter((t) => t > now - windowMs);
+
+  return {
+    isLocked(ip: string, now: number = Date.now()): boolean {
+      return recent(ip, now).length >= allowed;
+    },
+    /** Records one failure; true when this one locks the address. */
+    recordFailure(ip: string, now: number = Date.now()): boolean {
+      // Drop addresses with nothing left in the window, so the Map can't grow without bound.
+      for (const [key, times] of failures) if (times.every((t) => t <= now - windowMs)) failures.delete(key);
+      const times = [...recent(ip, now), now];
+      failures.set(ip, times);
+      return times.length === allowed;
+    },
+    clear(ip: string): void {
+      failures.delete(ip);
+    },
+    size(): number {
+      return failures.size;
+    },
+  };
+}
+export type LoginLimiter = ReturnType<typeof createLoginLimiter>;
+
+// Kept on globalThis so a dev-server reload doesn't forget the failures.
+const cache = globalThis as unknown as { snagLoginLimiter?: LoginLimiter };
+export const loginLimiter: LoginLimiter = (cache.snagLoginLimiter ??= createLoginLimiter());

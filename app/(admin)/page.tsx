@@ -1,9 +1,6 @@
-// Placeholder until the dashboard and /login arrive (slice 6).
+import { redirect } from "next/navigation";
+
+// "/" has nothing of its own: the dashboard, or /login when there's no session.
 export default function Home() {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col justify-center px-4">
-      <h1 className="text-display text-ink">Snag</h1>
-      <p className="text-body text-ink-muted">Screenshot in, ticket out.</p>
-    </main>
-  );
+  redirect("/dashboard");
 }

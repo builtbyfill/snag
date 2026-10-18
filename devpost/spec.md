@@ -433,8 +433,9 @@ export const storage: Storage = createLocalStorage(env.UPLOAD_DIR);
 
 ### `lib/auth` — session and limits
 
-- `session.ts`: `createSessionToken()`, `verifySessionToken(token)`. HMAC-SHA256 over `base64url({ iat, exp })` keyed with `SESSION_SECRET`. `requireSession()` is called at the top of every dashboard server action and the image route, independently of `proxy.ts`.
-- `rate-limit.ts`: `checkLoginAttempts(ip)` / `recordLoginFailure(ip)` over an in-memory `Map<ip, timestamps[]>` (5 per 15 min). `reportLimitHit(ipHash)` runs the `tickets` count query (10 per hour). `hashIp(ip)` is HMAC-SHA256 keyed with `IP_HASH_SECRET`, so stored hashes cannot be reversed with a rainbow table of IPv4 addresses.
+- `session.ts`: `createSessionToken(env)`, `verifySessionToken(token, env)`, `accessCodeMatches(input, code)` (SHA-256 of both sides, then `timingSafeEqual`), `sessionCookieOptions(appUrl)`. HMAC-SHA256 over `base64url({ iat, exp })` keyed with `SESSION_SECRET`; the signature is compared as text, before `exp` is read. `requireSession()` (redirects to `/login`) is called at the top of every dashboard page and server action, independently of `proxy.ts`; `isSignedIn()` is the boolean form for the image route's 404.
+- `login.ts`: `attemptLogin(input, { env, ip, limiter })`, the one login attempt behind `loginAction`: a locked address isn't checked at all, a wrong code counts a failure, success clears that address only.
+- `rate-limit.ts`: `createLoginLimiter()` with `isLocked(ip)` / `recordFailure(ip)` / `clear(ip)` over an in-memory `Map<ip, timestamps[]>` (5 per 15 min, sliding); the app uses one shared `loginLimiter`. `reportLimitHit(ipHash)` runs the `tickets` count query (10 per hour). `hashIp(ip)` is HMAC-SHA256 keyed with `IP_HASH_SECRET`, so stored hashes cannot be reversed with a rainbow table of IPv4 addresses.
 
 **Filip's decision (2026-10-16): one key, one purpose.** `ADMIN_SECRET` is only the access code. `SESSION_SECRET` only signs sessions. Rotating the access code therefore logs nobody out and leaves rate-limit hashes intact. Applying the same rule to the IP hash gives it its own `IP_HASH_SECRET`. Otherwise rotating `SESSION_SECRET` to force a logout would also reset every client's hourly report count. `lib/env.ts` requires all three secrets and rejects the app at startup if any two are equal.
 
@@ -826,11 +827,12 @@ snag/
 │   │       ├── help-block.tsx         # pinned under the list: how to take a screenshot, contact
 │   │       ├── contact.tsx            # "<name> looks after <project>." + mail link
 │   │       └── not-found.tsx          # broken report link
+│   ├── (admin)/layout.tsx             # .dark, noindex; login/ and dashboard/ live in this group; "/" → /dashboard
 │   ├── login/
-│   │   ├── page.tsx
+│   │   ├── page.tsx                   # server: already signed in → /dashboard; locked state on load
 │   │   └── login-form.tsx             # client: Field + error copy             (prd: Getting in)
 │   ├── dashboard/
-│   │   ├── layout.tsx                 # shell: wordmark, sign out
+│   │   ├── layout.tsx                 # shell: wordmark, sign out; requireSession()
 │   │   ├── page.tsx                   # chats: list + thread, reads searchParams (prd: Working the chats)
 │   │   ├── chat-list.tsx              # left column rows
 │   │   ├── thread.tsx                 # client: message + ticket card, keyboard nav, poll while pending
@@ -865,6 +867,7 @@ snag/
 │   │   └── local.ts                   # LocalDiskStorage
 │   ├── auth/
 │   │   ├── session.ts                 # SESSION_SECRET sign/verify, requireSession
+│   │   ├── login.ts                   # attemptLogin: limit, constant-time compare, token
 │   │   └── rate-limit.ts              # login Map, report count, hashIp
 │   └── tickets/
 │       ├── queries.ts                 # list/get/update with field whitelist

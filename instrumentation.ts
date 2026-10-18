@@ -3,6 +3,12 @@
 export async function register() {
   // Only a real server start: not the Edge runtime, and never during `next build`.
   if (process.env.NEXT_RUNTIME !== "nodejs" || process.env.NEXT_PHASE === "phase-production-build") return;
+
+  // Fail fast: a missing, short or placeholder secret, or two equal secrets, stops the server here
+  // with the variable's name (never its value).
+  const { readAuthEnv } = await import("@/lib/env");
+  readAuthEnv();
+
   try {
     const { getDb } = await import("@/lib/db/client");
     const { failInterruptedExtractions } = await import("@/lib/extraction/run");

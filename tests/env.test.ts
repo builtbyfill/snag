@@ -60,3 +60,52 @@ describe('readReportEnv', () => {
     expect(() => readReportEnv({ IP_HASH_SECRET: 'replace-with-32-random-bytes-xxxxxxxxxxxx' })).toThrow(/placeholder/);
   });
 });
+
+describe('readAuthEnv', () => {
+  const valid = {
+    ADMIN_SECRET: 'access-code-for-tests-only',
+    SESSION_SECRET: 's'.repeat(44),
+    IP_HASH_SECRET: 'i'.repeat(44),
+  };
+
+  it('reads the three secrets and defaults APP_URL', async () => {
+    const { readAuthEnv } = await import('@/lib/env');
+    expect(readAuthEnv(valid)).toEqual({ ...valid, APP_URL: 'http://localhost:3000' });
+  });
+
+  it('requires every secret and names each missing one', async () => {
+    const { readAuthEnv } = await import('@/lib/env');
+    expect(() => readAuthEnv({})).toThrow(/ADMIN_SECRET: is required[\s\S]*SESSION_SECRET: is required[\s\S]*IP_HASH_SECRET: is required/);
+  });
+
+  it('rejects a short access code, a short session key and placeholders', async () => {
+    const { readAuthEnv } = await import('@/lib/env');
+    expect(() => readAuthEnv({ ...valid, ADMIN_SECRET: 'fifteen-chars!!' })).toThrow(/ADMIN_SECRET: must be at least 16 characters/);
+    expect(() => readAuthEnv({ ...valid, SESSION_SECRET: 'too-short' })).toThrow(/SESSION_SECRET: must be at least 32 characters/);
+    expect(() => readAuthEnv({ ...valid, ADMIN_SECRET: 'replace-with-an-access-code-of-16-or-more-characters' })).toThrow(/ADMIN_SECRET: still holds the placeholder/);
+  });
+
+  it('rejects any two equal secrets, naming both variables and never the value', async () => {
+    const { readAuthEnv } = await import('@/lib/env');
+    const same = 'x'.repeat(44);
+    const cases = [
+      [{ ...valid, ADMIN_SECRET: same, SESSION_SECRET: same }, /SESSION_SECRET: must differ from ADMIN_SECRET/],
+      [{ ...valid, ADMIN_SECRET: same, IP_HASH_SECRET: same }, /IP_HASH_SECRET: must differ from ADMIN_SECRET/],
+      [{ ...valid, SESSION_SECRET: same, IP_HASH_SECRET: same }, /IP_HASH_SECRET: must differ from SESSION_SECRET/],
+    ] as const;
+    for (const [source, message] of cases) {
+      try {
+        readAuthEnv(source);
+        expect.unreachable();
+      } catch (error) {
+        expect(String(error)).toMatch(message);
+        expect(String(error)).not.toContain(same);
+      }
+    }
+  });
+
+  it('rejects an APP_URL that is not a URL', async () => {
+    const { readAuthEnv } = await import('@/lib/env');
+    expect(() => readAuthEnv({ ...valid, APP_URL: 'localhost' })).toThrow(/APP_URL/);
+  });
+});

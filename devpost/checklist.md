@@ -69,7 +69,7 @@ Build mode: learn — Filip's instruction for this build: one slice at a time, e
   Learner check: Run `docker compose up --build`, send a report from your phone, run `docker compose down` and then `docker compose up`, and confirm the ticket and its screenshot file are still there.
   Commit: `Run app, migrations and seed in Docker Compose`
 
-- [ ] **6. The developer can log in, and the dashboard is locked**
+- [x] **6. The developer can log in, and the dashboard is locked**
   Becomes usable: `/login` with the access code opens a placeholder dashboard for 30 days. A wrong code, the sixth failure and sign-out behave as in the PRD. `/dashboard/*` without a session redirects to login.
   Why now: Every dashboard surface after this sits behind it, and the image route needs `requireSession()`.
   PRD ref: `prd.md > Features and Behavior` (Getting in), `prd.md > Screens and Layout` (`/login`)
@@ -164,3 +164,4 @@ Activity mode:
 - Dashboard layout (slices 6–8) is open again: the approved redesign proposal (graphite sidebar, report list, per-report conversation, ticket fields at ≥1280px) is reconciled with Filip's later ChatGPT-desktop reference before slice 7.
 - Slice 7 seed images come from a fictional demo page captured with Playwright (new dev dependency, Filip's decision) — Filip has no app screenshots that are free of client data, so the spec's "test-environment screenshots" are generated instead.
 - `.env.example` uses obvious placeholders for secrets and working defaults for non-secret values; `lib/env.ts` refuses to start while a placeholder is left in — Filip's instruction for this build, replacing the spec's "every value empty".
+- Slice 6 as built (2026-10-18): the login core is `lib/auth/login.ts` (`attemptLogin`), so `loginAction` is a thin wrapper and the rules are unit-tested without Next; the limiter is `createLoginLimiter()` (`isLocked` / `recordFailure` / `clear`) instead of `checkLoginAttempts` / `recordLoginFailure`. "Startup fails" in practice: `instrumentation.ts` calls `readAuthEnv()` first, and Next then answers every request (health check included) with 500 while the log names the variable, e.g. `SESSION_SECRET: must differ from ADMIN_SECRET`; the process itself keeps running, so Compose shows the app as unhealthy rather than exited. Login and dashboard live in the `app/(admin)` route group, which sets the same `.dark` tokens as the client page; `/` now redirects to `/dashboard`. A reload keeps a locked login disabled (the page asks the same limiter). Accepted for the PoC: the login limit keys on the first `x-forwarded-for` value, which a client can set when the app is reached directly instead of through Caddy; a 16+ character access code keeps guessing impractical either way.

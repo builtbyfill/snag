@@ -141,17 +141,21 @@
   --radius: 0.5rem; /* controls 8px; cards 12px (lg); panels 16px (xl) */
 }
 
-/* Compact density (Filip, 2026-10-18): the client page uses the base 14/12 sizes. On touch
-   screens text fields stay at 16px, because iOS Safari zooms into anything smaller on focus. */
+/* Compact density (Filip, 2026-10-18): the client page and the dashboard use the base 14/12
+   sizes. On touch screens text fields stay at 16px, because iOS Safari zooms into anything
+   smaller on focus. */
 @media (pointer: coarse) {
   [data-surface="client"] textarea,
-  [data-surface="client"] input {
+  [data-surface="client"] input,
+  [data-surface="admin"] textarea,
+  [data-surface="admin"] input {
     font-size: 16px;
   }
 }
 
-/* The page behind the client panes, for overscroll on phones. */
-body:has([data-surface="client"]) {
+/* The page behind the dark surfaces, for overscroll on phones. */
+body:has([data-surface="client"]),
+body:has([data-surface="admin"]) {
   background: #212121;
 }
 
