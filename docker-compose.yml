@@ -1,5 +1,6 @@
-# Slice 3: Postgres only. The migrate and app services arrive in slice 5.
-# Local dev: `docker compose up -d db`, then run Next on the host with `npm run dev`.
+# spec.md > Docker Compose. `docker compose up --build` starts db → migrate → app on port 3000.
+# Seed once: `docker compose run --rm migrate npx tsx scripts/seed.ts`.
+# Local dev instead: `docker compose up -d db`, then `npm run dev` on the host (same database).
 services:
   db:
     image: postgres:18-alpine
@@ -18,5 +19,49 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # One-shot: applies the migrations in drizzle/ and exits. The app waits for it to succeed.
+  migrate:
+    build:
+      context: .
+      target: migrate                        # full dependencies + drizzle/, drizzle.config.ts, lib/, scripts/
+    environment:
+      DATABASE_URL: postgres://snag:${POSTGRES_PASSWORD}@db:5432/snag
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads                # so the seed can copy its images (slice 7)
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  # Exactly one app container. Extraction runs inside it, and on start it marks every ticket
+  # still pending as interrupted (lib/extraction/run.ts), which is only right with one instance.
+  app:
+    build:
+      context: .
+      target: runner                         # standalone Next output
+    env_file: .env                           # ANTHROPIC_API_KEY, ADMIN_SECRET, IP_HASH_SECRET, APP_URL, …
+    environment:
+      DATABASE_URL: postgres://snag:${POSTGRES_PASSWORD}@db:5432/snag
+      UPLOAD_DIR: /data/uploads
+      PORT: "3000"
+    volumes:
+      - uploads:/data/uploads
+    ports:
+      - "${APP_BIND:-0.0.0.0}:3000:3000"     # local: reachable from a phone on the LAN; server: 127.0.0.1 behind Caddy
+    depends_on:
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+    # docker compose stop sends SIGTERM; Next finishes pending after() callbacks first. 30s covers
+    # a typical extraction (5–15s); one still running after that is cut off, stays pending, and
+    # the next start marks it interrupted.
+    stop_grace_period: 30s
+    restart: unless-stopped
+
 volumes:
   db_data:
+  uploads:

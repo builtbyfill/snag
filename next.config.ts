@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Docker: `next build` also writes .next/standalone, a server.js with only the files it imports.
+  output: "standalone",
+
   // cacheComponents is off on purpose: every Snag screen is per request (database, session),
   // and notFound() must return a real 404 for unknown report links.
 

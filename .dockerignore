@@ -1,0 +1,22 @@
+# Never in an image: secrets, local data, eval material, build output, git history.
+.env
+.env.*
+!.env.example
+.git
+node_modules
+.next
+.uploads
+eval/images
+eval/results
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# Local tooling, not part of the app
+agent
+.agents
+.claude
+.impeccable
+devpost/learner-profile.md
+Dockerfile
+docker-compose.yml
