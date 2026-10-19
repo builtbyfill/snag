@@ -9,6 +9,10 @@ import { readAuthEnv } from "@/lib/env";
  */
 export function proxy(request: NextRequest) {
   if (verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value, readAuthEnv())) return NextResponse.next();
+  // An image URL without a session gets the same 404 the route gives: nothing to learn from it.
+  if (request.nextUrl.pathname.startsWith("/dashboard/images/")) {
+    return new NextResponse("Not found", { status: 404, headers: { "Cache-Control": "private, no-store" } });
+  }
   return NextResponse.redirect(new URL("/login", request.url));
 }
 

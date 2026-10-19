@@ -158,6 +158,29 @@ body:has([data-surface="client"]),
 body:has([data-surface="admin"]) {
   background: #212121;
 }
+html:has([data-surface="client"]),
+html:has([data-surface="admin"]) {
+  color-scheme: dark;
+  scrollbar-color: #3a3a3a transparent;
+}
+
+/* The dashboard is an app shell: the window never scrolls, only the client list and the thread
+   do, each in its own overflow area. (Login is in the same surface but may scroll on a short
+   phone screen, so this keys on the shell, not the surface.) */
+html:has([data-shell="dashboard"]),
+html:has([data-shell="dashboard"]) body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* A ticket card's link stretches over the whole card; its focus ring goes on the card. */
+[data-card]:has([data-ticket-card]:focus-visible) {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+[data-card] [data-ticket-card]:focus-visible {
+  outline: none;
+}
 
 @theme inline {
   /* Every transition-* utility uses Snag's timing unless a class says otherwise. */
@@ -347,6 +370,39 @@ body:has([data-surface="admin"]) {
     dialog[data-zoom][open]::backdrop {
       opacity: 0;
     }
+  }
+
+  /* Dashboard: a report that arrives while its chat is open settles in (180ms, 4px). The thread
+     marks itself data-live after the first paint, so the reports already there at load don't. */
+  [data-live] [data-report] {
+    transition:
+      opacity var(--motion-slow) var(--ease-standard),
+      translate var(--motion-slow) var(--ease-standard);
+  }
+  @starting-style {
+    [data-live] [data-report] {
+      opacity: 0;
+      translate: 0 4px;
+    }
+  }
+}
+
+/* Shortcut hints are drawn as small keys. */
+@layer base {
+  kbd {
+    display: inline-flex;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.3rem;
+    border: 1px solid var(--line-medium);
+    border-radius: 4px;
+    background: var(--sunken);
+    color: var(--ink-secondary);
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1;
   }
 }
 

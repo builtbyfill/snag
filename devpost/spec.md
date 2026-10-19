@@ -175,30 +175,50 @@ Redesigned 2026-10-17 from a chat into a small portal (`prd.md > Screens and Lay
 
 **Submit.** `submitReportAction` now returns `{ ok: true, ticketId }`; the client needs the id for its history. Everything else in `submitReport` is unchanged.
 
-### Dashboard chats `/dashboard` (slices 7–8)
+### Dashboard chats `/dashboard` (slices 7–9)
 
-**Redesign note (2026-10-17):** the dashboard takes the same shell and tokens as the client portal. Its layout is settled with Filip before slice 7; the text below is the earlier chat version and is rewritten then.
+Settled with Filip on 2026-10-18; the PRD (Screens and Layout > Chats, Working the chats) has the behavior. Structure from the shadcn/ui Mail example, Chatwoot's inbox, Plain's thread view, Linear and the ChatGPT desktop app, no branding taken. Same `.dark` tokens as the client portal, set by `app/(admin)/layout.tsx`.
 
-**Route.** `/dashboard?project=<id>&extraction=…&status=…`. Without `project`, desktop selects the chat with the latest report; below 1024px the chat list is the page.
+**Route.** `/dashboard?view=inbox|done&project=<uuid>&status=all|new|in_progress|done`, parsed with Zod; anything unknown falls back to `inbox`, no project and `all`. Without `project`, the client with the latest report is open on desktop; below 1024px the client list is the page until a client is chosen.
+
+**What loads where.**
+- `dashboard/layout.tsx` (server): `requireSession()`, `countOpenTickets()`, `DEVELOPER_NAME` → `app-nav.tsx` (220px). It re-renders on `router.refresh()`, so the count follows polling.
+- `dashboard/page.tsx` (server): `requireSession()`, then `listClients(view)` and the open client's whole thread (`listThread(projectId, "all")`), so each tab shows its count; the open tab filters it in the page. Recency groups and relative times are computed here, per request, by `lib/tickets/recency.ts`. Each card's Markdown is computed here too (`ticketToMarkdown`) and passed down, because Safari drops a clipboard write that comes after an `await`. The report URL is `APP_URL` + slug.
+- `clients-column.tsx` (client): search filters the loaded rows in memory; New project.
+- `thread.tsx` (client): roving focus over cards, keys, `router.refresh()` every 3 seconds while a card is pending and every 10 otherwise (none while the tab is hidden; a new report would otherwise never appear), new-card entry. The scroll areas are `relative`, so the cards' screen-reader text can't stretch the page.
+- `tickets/[id]/page.tsx` (slice 8) renders to the right of the nav; `?view&project&status` ride along so "Back to chat" and Esc return to the same place.
 
 **Queries (`lib/tickets/queries.ts`).**
-- `listChats()`: one row per project with its latest report and open count:
+- `countOpenTickets()`: tickets whose status isn't `done`.
+- `listClients(view)`: one row per project with its latest report and open count:
   ```sql
-  SELECT p.id, p.name, p.slug, last.client_sentence, last.created_at,
+  SELECT p.id, p.name, p.slug, p.created_at, last.client_sentence, last.created_at AS last_at,
          (SELECT count(*) FROM tickets o WHERE o.project_id = p.id AND o.status <> 'done') AS open_count
   FROM projects p
   LEFT JOIN LATERAL (
     SELECT client_sentence, created_at FROM tickets t
     WHERE t.project_id = p.id ORDER BY t.created_at DESC LIMIT 1
   ) last ON true
-  ORDER BY last.created_at DESC NULLS LAST, p.name;
+  ORDER BY last.created_at DESC NULLS LAST, p.created_at DESC, p.name;
   ```
+  Inbox keeps rows with `open_count > 0` or no report; Done keeps rows with a report and `open_count = 0`. Projects still waiting for a first report come last.
+- `getClient(id)` (the open client in any view), `hasProjects()` ("no projects yet" versus an empty Inbox), `getTicketHeading(id)` (the slice-7 ticket page: number, title, sentence, client).
   *Postgres note for Filip:* `LATERAL` lets the subquery see the current project row, so "latest ticket per project" is one index range scan per project on `tickets_project_created_idx (project_id, created_at DESC)`. The open count scans that project's tickets; fine at hundreds per project.
-- `listThread({ projectId, extraction, status })`: the project's tickets oldest first with their attachment, same filters as the old list. Done tickets are included unless the Status filter excludes them.
+- `listThread(projectId, status)`: the project's tickets oldest first, each with its attachment (for the thumbnail), its follow-ups oldest first, and from slice 9 its `ticket_events`. `all` applies no status filter, so Done tickets stay in the thread, muted.
 
-**Thumbnails.** The authenticated image route accepts `?w=320`: `sharp` resizes on the fly (`fit: inside`, JPEG 80), same session check and headers, `Cache-Control: private, max-age=300`. The thread never loads full-size screenshots.
+**Recency (`lib/tickets/recency.ts`).** `recencyGroup(date, now)` → Today / Yesterday / Previous 7 days / Older, by calendar day in Europe/Sarajevo; `relativeTime(date, now)` → "now" under a minute, "4 min", "2 h" within the same day and under 24 hours, then "17 Oct" ("17 Oct 2025" in another year).
 
-**Components.** `Item` + `Avatar` (initials) for chat rows; `Message`/`Bubble` for the client's message; a compact `Item` for the ticket card (state badge, Ask client, priority bars, status glyph; Done muted); `MessageScroller` for the thread; `Select` for filters in the chat header.
+**Ticket card.** `SN-<number>` and the confidence (two decimals) in Plex Mono, status glyph and word, priority bars and word, title, "What happens: <actual result>" (or "not clear from the report"), Ask client pill with the confidence beside it ("0.30 · low" under 0.6). Pending: dashed `line-strong` edge, "Reading the screenshot…". Failed: `danger` edge and text, "Couldn't read the screenshot", "Interrupted by a restart." or "Retry, or open the ticket for details.", and Retry. The card is an `<article>` whose link stretches over it (`after:absolute after:inset-0`), so the Retry button can sit inside without nesting a button in a link; the focus ring is drawn on the article. Done: muted.
+
+**Retry (slice 7).** `retryExtractionAction(ticketId)` → `requireSession()` → `retryExtraction(db, ticketId)` in `lib/tickets/retry.ts`: one conditional `UPDATE … WHERE extraction_state = 'extraction_failed'` back to `pending` (clears the error and reason; of two presses only one wins), then `after(() => runExtraction(…))`, unchanged: it fills only empty fields and numbers its attempts after the earlier ones. The thread's 3-second refresh follows the card to its end.
+
+**App shell.** `html` and `body` are `height: 100%; overflow: hidden` while the dashboard shell (`data-shell="dashboard"`) is on the page; the shell is an `h-dvh` grid with `overflow-hidden`; only the client list and the thread body scroll (`min-h-0` + `overflow-y-auto` + `relative`, so screen-reader text can't stretch the page). Thumbnail sizes (inside 280 × 240) are computed on the server, so the thread's height is final before images load and it opens at the newest report.
+
+**Thumbnails.** The authenticated image route accepts `?w=320` and `?w=640` (a `srcSet` for the 280px frame on 2x screens): `sharp` resizes on the fly (`fit: inside`, JPEG 80), same session check and headers, `Cache-Control: private, max-age=300`. The thread never loads full-size screenshots. `proxy.ts` answers `/dashboard/images/*` without a valid session with 404, not a redirect, so the route reveals nothing either way.
+
+**New project.** `new-project-dialog.tsx` (native `<dialog>`, as on the client page) → `createProjectAction(name)` → `requireSession()` → `createProject(db, name)` → redirect to the new chat.
+
+**Change rows (slice 9).** `updateTicketFieldAction` writes a `ticket_events` row when status or priority changes; the thread shows each as one muted line under its card ("Status changed to In progress", time).
 
 ## Data Model
 
@@ -209,6 +229,10 @@ Pass 1, `domain-modeling`. Vocabulary in `CONTEXT.md`. The consequential choice 
 **`projects`** — one per client app. `owner_id` is a nullable `uuid` column with **no foreign key** (there is no users table to point at). It costs nothing today and lets Better Auth land later with an `UPDATE`, not a schema redesign (`scope.md > Later`).
 
 **`tickets`** — the developer's working record. Holds the client's source material (sentence, language, reporter IP hash), workflow (`status`), extraction bookkeeping (`extraction_state`, `extraction_error`, `failed_reason` (`extraction_error` | `interrupted_by_restart`, migration `0001`), `confidence`), and the **working copy of every ticket field**. Inferred fields are two columns each: the value and its evidence.
+
+**Ticket number** (migration `0003_ticket_number`, slice 7) — `tickets.number`, an `integer GENERATED ALWAYS AS IDENTITY` column with a unique index, shown as `SN-<number>` on cards, in the detail and in the Markdown heading. Global, not per project: one sequence, no counting race. Rows that exist when the migration runs are numbered in table order.
+
+**`ticket_events`** (migration `0004_ticket_events`, slice 9) — one row per status or priority change: `id`, `ticket_id` → `tickets` (on delete cascade), `field` (`status` | `priority`), `from_value`, `to_value`, `created_at`; index on `(ticket_id, created_at)`. Written only by `updateTicketFieldAction`. It replaces the deferred status-change-time columns.
 
 **`attachments`** — one row per ticket (unique on `ticket_id`). Kept as its own table rather than columns because Filip listed it as an entity and because "one screenshot" is a hackathon limit, not a domain truth. Stores the storage key, sniffed MIME type, pixel size and byte size. The original file name from the client is **not stored** (it is untrusted and unneeded).
 
@@ -253,6 +277,7 @@ export const projects = pgTable('projects', {
 
 export const tickets = pgTable('tickets', {
   id:              uuid('id').primaryKey().defaultRandom(),
+  number:          integer('number').generatedAlwaysAsIdentity(),   // SN-<number>; migration 0003, unique index
   projectId:       uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   // source material
   clientSentence:  text('client_sentence').notNull(),
@@ -376,7 +401,8 @@ export default defineConfig({
 | Follow-ups | `follow_ups` (migration `0002_follow_ups`: id, ticket_id → tickets on delete cascade, body, reporter_ip_hash, created_at; indexes on (ticket_id, created_at) and (reporter_ip_hash, created_at)); also each history entry's `followUps` on the sending device | `addFollowUpAction` | persists; shown in the client's chat and, from slice 7, on the dashboard |
 | This device's reports | `localStorage` `snag:reports:v1:<slug>` (id, sentence, 240px thumbnail, time; max 20) | a confirmed send | persists in that browser only |
 | Full-size screenshot copies | IndexedDB `snag` / `screenshots`, key `<slug>:<ticketId>` (1600px JPEG) | a confirmed send; pruned with the history | persists in that browser only; never sent anywhere |
-| List filters | URL search params | filter controls | persists in the URL |
+| Dashboard view, client and tab | URL search params (`view`, `project`, `status`) | nav, client rows, status tabs | persists in the URL |
+| Status and priority changes (slice 9) | `ticket_events` | `updateTicketFieldAction` | persists; shown as change rows in the thread |
 
 ## Modules and Seams
 
@@ -441,8 +467,13 @@ export const storage: Storage = createLocalStorage(env.UPLOAD_DIR);
 
 ### `lib/tickets` — queries and Markdown
 
-- `queries.ts`: `listChats()`, `listThread({ projectId, extraction, status })` (see **Chat Surfaces**), `getTicket(id)`, `updateTicketField(id, field, value)` with a hard whitelist of editable columns (`title, location, actualResult, priority, tags, expectedResult, stepsToReproduce, status`). Evidence columns are not editable in the PoC; filling an empty inferred field by hand leaves its evidence `NULL`, which the UI renders as "Added by you".
-- `markdown.ts`: `ticketToMarkdown(ticket)`, pure. Implements the format in `prd.md > Reviewing a ticket` exactly: empty fields omitted, `_(suggested)_` markers only on inferred fields that were filled by extraction (evidence present), pending tickets reduce to the heading with the sentence as title plus the `> Client:` line.
+- `queries.ts`: `countOpenTickets()`, `listClients(view)`, `listThread(projectId, status)` (see **Chat Surfaces**), `getTicket(id)`, `updateTicketField(id, field, value)` with a hard whitelist of editable columns (`title, location, actualResult, priority, tags, expectedResult, stepsToReproduce, status`). Evidence columns are not editable in the PoC; filling an empty inferred field by hand leaves its evidence `NULL`, which the UI renders as "Added by you".
+- `recency.ts`: `recencyGroup(date, now)` and `relativeTime(date, now)`, pure (see **Chat Surfaces**).
+- `markdown.ts` (slice 7, for `c` in the thread): `ticketToMarkdown(ticket)`, pure. Implements the format in `prd.md > Reviewing a ticket` exactly: heading `## SN-<number>: <title>`, empty fields omitted, `_(suggested)_` markers only on inferred fields that were filled by extraction (evidence present), one `> Later:` line per follow-up; pending tickets reduce to the heading with the sentence as title plus the `> Client:` and `> Later:` lines.
+
+### `lib/projects` — adding a project
+
+- `create.ts`: `createProject(db, name)` trims the name, requires 2–60 characters, and inserts the project with `newSlug()`, 21 URL-safe characters from `crypto.randomBytes` (never from input). Returns `{ ok: true, id } | { ok: false, error: 'nameShort' | 'nameLong' }`. The action redirects to the new chat.
 
 ### Thin layers
 
@@ -621,14 +652,17 @@ Pass 6, `vibesec-skill`, applied to the four areas Filip named. Each line is a b
 - [ ] Login CSRF: `sameSite=strict` plus Next.js server actions' built-in Origin check. No extra token in the PoC.
 - [ ] Login rate limit: 5 failures per IP per 15 minutes, in memory; message per PRD. Successful login does not reset other IPs.
 - [ ] Sign out: cookie cleared with `maxAge: 0`.
-- [ ] `proxy.ts` redirects unauthenticated `/dashboard/*` to `/login`; **and** every dashboard server action and the image route call `requireSession()` themselves (defense in depth; the proxy is a convenience, not the gate).
+- [ ] `proxy.ts` redirects unauthenticated `/dashboard/*` to `/login` (image paths get 404 instead); **and** every dashboard page, server action and the image route check the session themselves (defense in depth; the proxy is a convenience, not the gate).
+- [ ] `createProjectAction`: `requireSession()` first; the name is Zod `trim().min(2).max(60)`; the slug comes from `crypto`, never from input; returns the new id only.
+- [ ] `retryExtractionAction`: `requireSession()` first; the ticket id is a UUID; only a failed ticket changes state (`tests/admin-gate.test.ts` and `tests/db/retry.test.ts`).
 
 **Authenticated image route (`/dashboard/images/[ticketId]`)**
 - [ ] `requireSession()` first; failure → 404, not 401, so the route reveals nothing.
 - [ ] `ticketId` validated as UUID by Zod; attachment row looked up; file read via `storage.get(row.storageKey)`. The URL never carries a path.
 - [ ] Headers: `Content-Type` from the row, `X-Content-Type-Options: nosniff`, `Content-Disposition: inline; filename="screenshot.<ext>"`, `Cache-Control: private, no-store`.
 - [ ] Uploads folder is outside `public/` and outside the Next build output; the app process is the only reader.
-- [ ] `?w=` on the image route accepts only `320` (thumbnail) or nothing (original); any other value is a 404.
+- [ ] `?w=` on the image route accepts only `320` or `640` (thumbnails) or nothing (original); any other value is a 404.
+- [ ] Without a session, `/dashboard/images/*` answers 404 from `proxy.ts` as well as from the route, never a redirect to `/login`.
 
 **Secrets**
 - [ ] `.env` and `.env.*` ignored; `.env.example` committed with empty values and one comment per variable. `.dockerignore` excludes `.env` too (the image must never contain it; Compose injects at runtime).
@@ -832,11 +866,18 @@ snag/
 │   │   ├── page.tsx                   # server: already signed in → /dashboard; locked state on load
 │   │   └── login-form.tsx             # client: Field + error copy             (prd: Getting in)
 │   ├── dashboard/
-│   │   ├── layout.tsx                 # shell: wordmark, sign out; requireSession()
-│   │   ├── page.tsx                   # chats: list + thread, reads searchParams (prd: Working the chats)
-│   │   ├── chat-list.tsx              # left column rows
-│   │   ├── thread.tsx                 # client: message + ticket card, keyboard nav, poll while pending
-│   │   ├── ticket-card.tsx            # compact card linking to detail
+│   │   ├── layout.tsx                 # requireSession(), open count → app-nav (prd: Chats)
+│   │   ├── app-nav.tsx                # 220px: mark, Inbox (count), Done, developer + Sign out
+│   │   ├── page.tsx                   # server: view/project/status → clients + thread (prd: Working the chats)
+│   │   ├── clients-column.tsx         # client: search, New project, recency groups, client-row
+│   │   ├── client-row.tsx             # initials, name, latest sentence, relative time, open count
+│   │   ├── new-project-dialog.tsx     # native <dialog> → createProjectAction
+│   │   ├── thread.tsx                 # client: scroller, j/k/Enter/c/Esc, refresh while pending, entry
+│   │   ├── thread-header.tsx          # client name, Copy report link, status tabs (links)
+│   │   ├── report-message.tsx         # framed thumbnail ≤280px, sentence, time, follow-ups
+│   │   ├── ticket-card.tsx            # SN number, status, priority, title, What happens, Ask client, confidence
+│   │   ├── thread-empty.tsx           # no projects / no reports / empty tab / empty Done view
+│   │   ├── system-row.tsx             # slice 9: status or priority change, one muted line
 │   │   ├── tickets/[id]/
 │   │   │   ├── page.tsx               # two columns, server-rendered           (prd: Reviewing a ticket)
 │   │   │   ├── ticket-fields.tsx      # client: editable fields, save on blur, status/priority selects
@@ -845,8 +886,9 @@ snag/
 │   └── actions/
 │       ├── auth.ts                    # loginAction, signOutAction
 │       ├── report.ts                  # submitReportAction (+ after → runExtraction), getReportStatusesAction
-│       ├── tickets.ts                 # updateTicketFieldAction, retryExtractionAction
-├── proxy.ts                           # redirect /dashboard/* without a valid cookie
+│       ├── projects.ts                # createProjectAction
+│       ├── tickets.ts                 # retryExtractionAction (slice 7), updateTicketFieldAction (slice 9)
+├── proxy.ts                           # /dashboard/* without a valid cookie: redirect to /login, images 404
 ├── instrumentation.ts                 # register(): marks extractions interrupted by a restart
 ├── lib/
 │   ├── env.ts                         # Zod-parsed process.env, fail fast
@@ -869,9 +911,13 @@ snag/
 │   │   ├── session.ts                 # SESSION_SECRET sign/verify, requireSession
 │   │   ├── login.ts                   # attemptLogin: limit, constant-time compare, token
 │   │   └── rate-limit.ts              # login Map, report count, hashIp
+│   ├── projects/
+│   │   └── create.ts                  # createProject, newSlug
 │   └── tickets/
-│       ├── queries.ts                 # list/get/update with field whitelist
-│       └── markdown.ts                # ticketToMarkdown
+│       ├── queries.ts                 # clients, thread, count, get, update with field whitelist
+│       ├── recency.ts                 # recencyGroup, relativeTime, dateTime
+│       ├── retry.ts                   # retryExtraction: failed → pending, once
+│       └── markdown.ts                # ticketToMarkdown (slice 7)
 ├── components/
 │   ├── ui/                            # shadcn (Base UI)
 │   ├── state-badge.tsx                # extracted/pending/failed/ask-client with dot
@@ -881,7 +927,9 @@ snag/
 ├── drizzle.config.ts
 ├── scripts/
 │   └── seed.ts                        # idempotent seed: project + 3 tickets + images (tsx, from the migrate stage in Compose)
-├── seed/images/                       # fake screenshots for seed (committed, no real data)
+├── seed/
+│   ├── demo-page/                     # fictional demo app with three visible bugs (slice 7)
+│   └── images/                        # synthetic screenshots from it, scripts/capture-seed.mjs (committed)
 ├── eval/
 │   ├── run.ts                         # the runner
 │   ├── cases.json                     # references (committed)
@@ -940,6 +988,13 @@ Nothing else leaves the box.
 7. **Default model `claude-sonnet-5-5`**, ID in `EXTRACTION_MODEL` so 4.6 can be compared later. The eval runs on 5.5 first. Consequences carried into the spec: `max_tokens` raised to 8192 for adaptive thinking, the retry feedback goes in a user turn, and no sampling parameters are set.
 
 Also confirmed as drafted: Base UI only with no Radix fallback, the two indexes, the Postgres 18 volume path, the separate migrate step, and eval keyword matching with manual overrides counted separately.
+
+### Filip's decisions, dashboard layout (2026-10-18)
+
+- **Three-column chat app** (see **Chat Surfaces > Dashboard chats**): nav 220, clients 300 grouped by recency with search and New project, thread with the client's message and follow-ups, Snag's ticket card and change rows; status tabs in the thread header; j/k, Enter, c, Esc.
+- **Five recommendations approved:** Done in the nav is the clients with nothing open (it doesn't repeat the Done tab); no Settings; ticket numbers `SN-<n>` from an identity column; the Extraction filter is dropped; "This blocks my work" (`client_flag`) moves to Later.
+- **Moved between slices:** `ticketToMarkdown` and Retry on the card to slice 7; change rows (`ticket_events`) to slice 9.
+- **New project** in the dashboard (reverses seed-only projects); rename and regenerate stay deferred.
 
 ### Filip's decisions during the build (2026-10-17)
 

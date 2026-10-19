@@ -26,3 +26,14 @@ describe('components use the configured cn', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe('initials', () => {
+  it('takes the first letter of the first two words, uppercased', async () => {
+    const { initials } = await import('@/lib/utils');
+    expect(initials('Clinic booking')).toBe('CB');
+    expect(initials('  vedra   dental clinic ')).toBe('VD');
+    expect(initials('Čistoća')).toBe('ČI');
+    expect(initials('3D print shop')).toBe('3P');
+    expect(initials('')).toBe('?');
+  });
+});

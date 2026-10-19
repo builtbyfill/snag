@@ -1,32 +1,16 @@
-import { LogOutIcon } from "lucide-react";
-import { signOutAction } from "@/app/actions/auth";
-import { SnagMark } from "@/components/snag-mark";
-import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth/session";
-import { adminCopy } from "@/lib/copy/admin";
+import { getDb } from "@/lib/db/client";
+import { countOpenTickets } from "@/lib/tickets/queries";
+import { AppNav } from "./app-nav";
+import { DashboardFrame } from "./dashboard-frame";
 
-/** The dashboard shell: the wordmark and Sign out. The chats arrive in slice 7. */
+/**
+ * The dashboard shell: the nav (Inbox with the open count, Done, the developer, Sign out) beside
+ * whatever page is open. It re-renders on router.refresh(), so the count follows the polling.
+ */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   await requireSession();
-  return (
-    <div className="flex h-dvh flex-col">
-      <header data-surface="dark" className="shrink-0 border-b border-chrome-line bg-chrome text-chrome-fg">
-        <div className="flex h-[51px] items-center gap-2.5 px-4">
-          <SnagMark className="size-7 shrink-0 text-chrome-fg [--snag-mark-cut:var(--chrome)]" />
-          <p className="flex-1 text-body font-semibold">Snag</p>
-          <form action={signOutAction}>
-            <Button
-              type="submit"
-              variant="ghost"
-              className="h-9 gap-1.5 rounded-md px-2.5 text-meta font-medium text-chrome-fg hover:bg-chrome-hover hover:text-chrome-fg pointer-coarse:h-11"
-            >
-              <LogOutIcon className="size-4" aria-hidden />
-              {adminCopy.shell.signOut}
-            </Button>
-          </form>
-        </div>
-      </header>
-      <div className="min-h-0 flex-1">{children}</div>
-    </div>
-  );
+  const openCount = await countOpenTickets(getDb());
+  const developerName = process.env.DEVELOPER_NAME?.trim().slice(0, 60) || null;
+  return <DashboardFrame nav={<AppNav openCount={openCount} developerName={developerName} />}>{children}</DashboardFrame>;
 }

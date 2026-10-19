@@ -1,0 +1,99 @@
+<!doctype html>
+<!--
+  A fictional booking app ("Vedra Dental", invented clinic, invented people) with three visible bugs,
+  rendered by scripts/capture-seed.mjs into seed/images/ as phone screenshots. Synthetic on purpose:
+  the repo is public and Filip has no app screenshots free of client data.
+  Screens: #details (name error under a filled name), #calendar (a week with no free times),
+  #payment (the total reads "NaN KM").
+-->
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vedra Dental · Zakazivanje</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 15px/1.4 -apple-system, "Segoe UI", Roboto, sans-serif; color: #1d2a33; background: #f3f6f7; min-height: 100vh; }
+  .status { display: flex; justify-content: space-between; padding: 12px 22px 6px; font-weight: 600; font-size: 14px; background: #fff; }
+  .status .icons { letter-spacing: 2px; font-size: 12px; }
+  header { background: #fff; padding: 10px 18px 14px; border-bottom: 1px solid #e3e9ec; display: flex; align-items: center; gap: 10px; }
+  .logo { width: 30px; height: 30px; border-radius: 8px; background: #2a9d8f; color: #fff; display: grid; place-items: center; font-weight: 700; }
+  header b { font-size: 17px; }
+  header small { display: block; color: #6b7c86; font-size: 12px; }
+  main { padding: 18px; }
+  h1 { font-size: 21px; margin-bottom: 4px; }
+  .sub { color: #6b7c86; margin-bottom: 18px; font-size: 14px; }
+  .steps { display: flex; gap: 6px; margin-bottom: 20px; }
+  .steps span { flex: 1; height: 5px; border-radius: 3px; background: #d5dee2; }
+  .steps span.on { background: #2a9d8f; }
+  .steplabel { font-size: 12px; color: #6b7c86; margin: -12px 0 18px; }
+  label { display: block; font-weight: 600; font-size: 13px; margin: 14px 0 6px; }
+  .input { background: #fff; border: 1px solid #cdd7dc; border-radius: 10px; padding: 13px 14px; font-size: 16px; }
+  .input.bad { border-color: #d64545; }
+  .err { color: #d64545; font-size: 13px; margin-top: 6px; }
+  .btn { margin-top: 26px; background: #2a9d8f; color: #fff; text-align: center; border-radius: 12px; padding: 15px; font-weight: 600; font-size: 16px; }
+  .btn.off { background: #a9c9c5; }
+  .note { margin-top: 12px; color: #6b7c86; font-size: 13px; text-align: center; }
+  .week { display: grid; gap: 10px; }
+  .day { background: #fff; border: 1px solid #e3e9ec; border-radius: 12px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .day b { font-size: 15px; }
+  .day small { color: #9aa8b0; }
+  .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-weight: 600; }
+  .nav i { font-style: normal; color: #2a9d8f; font-size: 22px; }
+  .card { background: #fff; border: 1px solid #e3e9ec; border-radius: 14px; padding: 16px; }
+  .row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #eef2f4; }
+  .row:last-child { border-bottom: 0; }
+  .row.total { font-weight: 700; font-size: 17px; padding-top: 14px; }
+  .muted { color: #6b7c86; }
+  .screen { display: none; }
+  .screen:target, body:not(:has(:target)) #details { display: block; }
+</style>
+</head>
+<body>
+  <div class="status"><span>9:41</span><span class="icons">▂▄▆ 5G ▮▮▮</span></div>
+  <header><div class="logo">V</div><div><b>Vedra Dental</b><small>Ordinacija Vedra, Zenica</small></div></header>
+
+  <section id="details" class="screen"><main>
+    <h1>Zakazivanje termina</h1>
+    <p class="sub">Kontrolni pregled · utorak, 27. okt. u 10:30</p>
+    <div class="steps"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+    <p class="steplabel">Korak 3 od 4: Vaši podaci</p>
+    <label>Ime i prezime</label>
+    <div class="input bad">Selma Begović</div>
+    <p class="err">Upišite ime i prezime.</p>
+    <label>Broj telefona</label>
+    <div class="input">061 482 337</div>
+    <label>Napomena (nije obavezno)</label>
+    <div class="input muted">Osjetljiv zub gore lijevo</div>
+    <div class="btn">Dalje</div>
+  </main></section>
+
+  <section id="calendar" class="screen"><main>
+    <h1>Odaberite termin</h1>
+    <p class="sub">Kontrolni pregled, 30 min</p>
+    <div class="nav"><i>‹</i><span>26. – 30. oktobar</span><i>›</i></div>
+    <div class="week">
+      <div class="day"><b>Ponedjeljak 26.</b><small>Nema slobodnih termina</small></div>
+      <div class="day"><b>Utorak 27.</b><small>Nema slobodnih termina</small></div>
+      <div class="day"><b>Srijeda 28.</b><small>Nema slobodnih termina</small></div>
+      <div class="day"><b>Četvrtak 29.</b><small>Nema slobodnih termina</small></div>
+      <div class="day"><b>Petak 30.</b><small>Nema slobodnih termina</small></div>
+    </div>
+    <p class="note">Ne vidite odgovarajući termin? Pozovite nas na 032 410 220.</p>
+  </main></section>
+
+  <section id="payment" class="screen"><main>
+    <h1>Potvrda i plaćanje</h1>
+    <p class="sub">Korak 4 od 4</p>
+    <div class="card">
+      <div class="row"><span class="muted">Usluga</span><span>Kontrolni pregled</span></div>
+      <div class="row"><span class="muted">Termin</span><span>Uto, 27. okt. 10:30</span></div>
+      <div class="row"><span class="muted">Cijena</span><span>40,00 KM</span></div>
+      <div class="row"><span class="muted">Popust za online</span><span>−10%</span></div>
+      <div class="row total"><span>Ukupno</span><span>NaN KM</span></div>
+    </div>
+    <div class="btn off">Plati karticom</div>
+    <p class="note">Plaćanje je sigurno. Račun stiže na e-mail.</p>
+  </main></section>
+</body>
+</html>

@@ -20,6 +20,7 @@ COPY drizzle ./drizzle
 COPY drizzle.config.ts tsconfig.json ./
 COPY lib ./lib
 COPY scripts ./scripts
+COPY seed/images ./seed/images
 # The uploads volume is created from this folder on first use, so it must belong to `node`
 # for the app (which also runs as `node`) to write screenshots into it.
 RUN mkdir -p /data/uploads && chown node:node /data/uploads

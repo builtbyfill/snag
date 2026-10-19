@@ -46,16 +46,17 @@ Redesign, 2026-10-17 (Filip; references: his piz-erp for the shell and type scal
 Every tap target at least 44px. No navigation, no footer.
 
 ### Chats `/dashboard`
-**Redesign note (2026-10-17):** the dashboard moves into the same graphite-and-light shell and monochrome palette as the client page (see Look and Feel). Its layout (approved proposal: graphite sidebar, report list, per-report conversation, ticket fields) is settled with Filip before slice 7; the description below is the earlier chat version.
+Settled with Filip on 2026-10-18. References for structure only, never their branding: the shadcn/ui Mail example, Chatwoot's inbox, Plain's thread view, Linear's issue view, the ChatGPT desktop app in dark mode. The same dark tokens as the client page, compact density. Three columns, full bleed, 1px `line` between them:
 
-Dashboard shell with the wordmark and sign out. Two panes at 1024px and wider (Filip, 2026-10-17):
-- **Left, the chat list:** one row per project, latest report first: avatar with the project's initials, project name, the latest client sentence on one line, its time, and a neutral count of open tickets (not Done).
-- **Right, the chat with the selected client:** a header (project name, **Copy report link**, Extraction and Status filters), then the thread, oldest at the top and scrolled to the newest. Each report is the client's message (screenshot thumbnail, sentence, time) followed by its compact ticket card: state dot with text, title (or state text while pending or failed), **Ask client** badge, priority bars, status glyph. Done tickets stay in the thread, muted. Click or Enter on a card opens the ticket detail.
+- **Nav, 220px, `pane`:** the Snag mark and wordmark; **Inbox** with the number of open tickets; **Done**; at the bottom the developer (initials and `DEVELOPER_NAME`, "Developer" when it isn't set) and **Sign out**. Inbox lists the clients with an open ticket or no reports yet; Done lists the clients that have reports and nothing open, so Inbox gets shorter as work gets done. No Settings: there is nothing to set in the PoC.
+- **Clients, 300px, `pane`:** a search field (client name and latest sentence), **New project**, then one row per project, grouped by its latest report as in ChatGPT: Today, Yesterday, Previous 7 days, Older (Europe/Sarajevo). A row: initials avatar, project name, the latest client sentence on one line, its relative time ("now", "4 min", "2 h", then "17 Oct"), and the number of open tickets. Projects without reports come last, in their own group "Waiting for a first report", newest first, each reading "No reports yet". The open chat is `selected`; on a phone the list marks nothing until a chat is opened. From 1280px the nav names the view, so the search field takes the column's header row.
+- **Thread, flexible, `canvas`, content at most 720px wide:** a 52px header with the client's name, status tabs with counts (All 3 / New 2 / In progress 1 / Done 0; from 1024px in the same row, below that in a row of their own; hidden while the client has no reports) and **Copy report link**; then the client's reports oldest first, opened scrolled to the newest. Each report: the client's message, labelled "Client" (screenshot thumbnail in a raised frame, at most 280px wide and 240px tall; the sentence; its time) and her follow-ups, then Snag's ticket card, then any status or priority changes as one subdued line each with its time (Plain-style; from slice 9).
+- **Ticket card:** the ticket number in Plex Mono (`SN-14`), status (glyph and word), priority (one, two or three bars and word), the title, one line "What happens: <actual result>" ("What happens: not clear from the report" when there is none), the **Ask client** pill when it applies, and the confidence in Plex Mono (`0.82`; beside the Ask client pill when flagged, as "0.30 · low" under 0.6). Reading: a dashed edge and "Reading the screenshot…", nothing else. Failed: the only red on the page, "Couldn't read the screenshot", then "Interrupted by a restart." or "Retry, or open the ticket for details.", and **Retry** (slice 7, Filip 2026-10-18: dev restarts keep producing interrupted tickets), which shows "Retrying…" and turns the card back to reading. The Ask client hint shows beside the pill while the card is hovered or focused. Done: the same card in muted text. The whole card opens the ticket detail.
 
-Below 1024px the chat list is the page; choosing a chat opens its thread with a back link.
+The dashboard is an app shell: the window never scrolls, only the client list and the thread body do. Every column's header line sits at 52px. From 1280px all three columns show. From 1024 to 1279px the nav folds into a menu button at the top of the clients column (a sheet). Below 1024px the client list is the page; opening a chat fills the screen with a back link.
 
 ### Ticket detail `/dashboard/tickets/<id>`
-Two columns at 1024px and wider, stacked below. **Left, the source** (sticky on desktop): the screenshot, click to view full size in a dialog; "Client wrote" with the verbatim sentence; received time; the project. **Right, the ticket**: Title as the page heading, then Where it happened, What's wrong, Priority, Tags. A visible divider, then the "Suggested by AI" group: Expected result, Steps to reproduce, each with its evidence line. Top-right actions: Status select, **Copy as Markdown**, and **Retry extraction** when the ticket is in the failed state. Small meta line under the title: extraction state, confidence as a number, and the Ask client badge when it applies. Back link "Back to chat" top-left, returning to the same chat and filters.
+Two columns at 1024px and wider, stacked below. **Left, the source** (sticky on desktop): the screenshot, click to view full size in a dialog; "Client wrote" with the verbatim sentence; received time; the project. **Right, the ticket**: Title as the page heading, then Where it happened, What's wrong, Priority, Tags. A visible divider, then the "Suggested by AI" group: Expected result, Steps to reproduce, each with its evidence line. Top-right actions: Status select, **Copy as Markdown**, and **Retry extraction** when the ticket is in the failed state. Small meta line under the title: extraction state, confidence as a number, and the Ask client badge when it applies. Back link "Back to chat" top-left, returning to the same client, view and tab; Esc does the same. The page sits to the right of the nav.
 
 ## Look and Feel
 
@@ -99,7 +100,7 @@ Sentence case everywhere else, including buttons. Uppercase only in `label`. Lin
 | `line-strong` | `#85888E` | Control edges (fields, the screenshot area) | 3.6 / 3.2 (WCAG 1.4.11) |
 | `danger` | `#B42318` | **Extraction failed**, nothing else | 6.6 / 6.0 / 5.6; white on it 6.6 |
 
-**Dark set: the client page now, the dashboard later** (Filip, 2026-10-18, final pass). Same token names under a `.dark` wrapper, which `app/(client)/layout.tsx` sets.
+**Dark set: the client page and the dashboard** (Filip, 2026-10-18, final pass). Same token names under a `.dark` wrapper, which `app/(client)/layout.tsx` and `app/(admin)/layout.tsx` set.
 
 | Token | Dark hex | Role |
 | --- | --- | --- |
@@ -156,12 +157,12 @@ Source: scope's stack decision (shadcn/ui on Tailwind v4). Component choices ver
 | Screenshot picking, drag-and-drop, paste | `react-dropzone` (`useDropzone` with `noClick`; the "Add a screenshot" area calls `open()`; the whole page is the drop target on desktop) | Not hand-rolled. One file, `image/*`, shrunk in the browser when large. Do **not** set the `capture` attribute: the native picker already offers Camera and Photo Library. The Kibo UI Dropzone used until slice 3 is removed. |
 | Chosen-image preview (client) | The screenshot fills the area in place, with **Replace** and **Remove** (44px) on top | Plain `<figure>`; no chip. |
 | Report list, date tiles (client) | Own `report-list.tsx` rows with `components/date-tile.tsx` and `components/status-glyph.tsx` | Grouped In progress / Done; `aria-current` on the open report. |
-| Chat thread (dashboard) | shadcn `Message`, `Bubble`, `MessageScroller` | Revisited with the dashboard layout before slice 7. |
-| Chat list rows, avatars | shadcn `Item`, `Avatar` | Dashboard left column. |
+| Chat thread (dashboard) | `MessageScroller` for the scroll area; the client's message and the ticket card are Snag's own (`report-message.tsx`, `ticket-card.tsx`) | Settled 2026-10-18 (Screens and Layout > Chats). |
+| Client rows, avatars | shadcn `Item`, `Avatar` | Dashboard clients column, grouped by recency. |
 | Toast | shadcn `Toast` (`Toaster`, `toast()`), Base UI toast underneath on the Base variant | Used for: Copied as Markdown, Report link copied, Couldn't save, Extraction finished / failed again. Never for routine saves. |
 | Dialog | shadcn `Dialog` | One use in the PoC: screenshot full-size view in ticket detail. Escape and close button both work. |
 | Badges and states | shadcn `Badge` | Variants `extracted`, `pending` (dashed border, spinner), `failed` (the one red), `ask-client` (outlined pill with icon). Each renders text; none relies on color alone. |
-| Status and priority | shadcn `Select` (Base UI select) | Status and Priority in ticket detail; filters in the list. Monochrome. |
+| Status and priority | shadcn `Select` (Base UI select) | Status and Priority in ticket detail. The thread's status tabs are links. Monochrome. |
 | Empty states | shadcn `Empty` | Project with no tickets; filtered list with no matches. |
 | Pending indicator | shadcn `Spinner` | Inside list rows and the Retry button while extraction runs. |
 | Ticket card in a chat | shadcn `Item` (compact) | One per report, under the client's message; the whole card links to the detail; keyboard focusable. |
@@ -180,11 +181,17 @@ Source: `scope.md > The POC Boundary` (admin access).
 - Visiting any `/dashboard` URL without a session redirects to `/login`.
 
 ### Sharing the report link (chat header)
-Source: `scope.md > The POC Boundary` (seed-created projects, slug).
+Source: `scope.md > The POC Boundary` (slug).
 
-- The chat list shows seeded projects by name. Opening a chat sets the link in its header.
-- **Copy report link** copies `https://<host>/r/<slug>` and shows the toast "Report link copied". The URL is shown in the chat header in IBM Plex Mono so it can be read before copying.
-- No create, rename, or regenerate in the PoC (deferred).
+- Every chat header has **Copy report link**: it copies `https://<host>/r/<slug>` and reads "Report link copied" for two seconds. An empty chat also shows the URL in IBM Plex Mono, so it can be read before copying.
+- Rename and regenerate stay deferred.
+
+### Adding a project (clients column)
+Filip, 2026-10-18. Reverses "seed-created projects only"; it also gives the deployment a project whose slug isn't in the public repo.
+
+- **New project** opens a small dialog: one field "Project name" and **Create project**. The project gets a random 21-character slug and opens as an empty chat with its report link ready to copy.
+- The name is 2 to 60 characters. Errors sit under the field: "Add a name of at least 2 characters." and "Keep the name under 60 characters."
+- No rename, delete or regenerate in the PoC.
 
 ### Reporting a problem (client page)
 
@@ -218,15 +225,18 @@ Source: `scope.md > The Unique Kernel`, `scope.md > The POC Boundary` (two-tier 
 - **Ask client** rule, deterministic: confidence below 0.6, **or** What's wrong is empty, **or** Where it happened is "Unknown" and the sentence is empty. (The last clause can't trigger in the PoC because the sentence is required; it stays so the rule matches scope and survives a future optional sentence.)
 
 ### Working the chats (`/dashboard`)
-Source: `scope.md > The Core Loop`, `scope.md > Inspiration & Identity`. Chat form decided by Filip, 2026-10-17.
+Source: `scope.md > The Core Loop`, `scope.md > Inspiration & Identity`. Layout settled by Filip on 2026-10-18 (see Screens and Layout > Chats).
 
-- **Chat list:** one row per project, ordered by latest report: initials avatar, name, latest client sentence (one line), its time ("4 min ago", then date after 24 h), neutral count of open tickets. The selected chat is highlighted.
-- **Thread:** the selected project's reports, oldest at the top, opened scrolled to the newest. Each report: the client's message (thumbnail, verbatim sentence, time), then its ticket card: state dot and text ("Extracted", "Reading screenshot…", "Couldn't read screenshot"), title (for pending: "Reading screenshot…" in `ink-muted`; for failed: the first 60 characters of the sentence in `ink-muted`), **Ask client** badge when applicable, priority (bars + text), status (glyph + text). Done tickets stay in the thread, muted.
-- **Filters** in the chat header: Extraction (All / Ask client / Failed) and Status (All / New / In progress / Done). They narrow the thread; active filter shown in the control, not as chips.
-- Pending cards refresh themselves until they resolve; no manual reload needed for the demo.
-- **Keyboard:** Up/Down or j/k move focus between ticket cards, Enter opens the focused ticket. Focus ring always visible.
-- **Empty chat:** `Empty` with "No reports yet", "Share the report link with your client. Reports appear here the moment they're sent.", and **Copy report link**.
-- **Filtered to nothing:** "Nothing to ask the client about" / "No failed extractions" / "No tickets match these filters" with **Clear filters**.
+- **URL:** `/dashboard?view=inbox|done&project=<id>&status=all|new|in_progress|done`. Without a project, desktop opens the client with the latest report.
+- **Status tabs** narrow the thread: All (Done tickets included, muted), New, In progress, Done. They are links, so Back and a reload keep them.
+- **Live:** the chat refreshes itself every 3 seconds while a card is reading and every 10 seconds otherwise, and not at all while the tab is hidden (coming back refreshes at once). Without the slower refresh a new report would never appear while nothing is reading. A report that arrives while the chat is open settles in at the bottom; its client moves to the top of Today.
+- **Keyboard:** j/k or Down/Up move focus between ticket cards, Enter opens the focused ticket, c copies it as Markdown ("Copied as Markdown"), Esc leaves the card. Keys do nothing while typing in a field. The focus ring is always visible.
+- **No projects:** "No projects yet", "Add a project to get a report link for your client.", **New project**.
+- **Empty chat:** "No reports yet", "Send this link to your client. Reports show up here the moment they're sent.", the link in Plex Mono, **Copy report link**.
+- **Empty tab:** "No new tickets", "Nothing in progress" or "Nothing done yet", with **Show all**.
+- **Empty Inbox** (every client done): "Every client's reports are done."
+- **Empty Done view:** "Clients with nothing open show up here."
+- **Search with no match:** "No clients match "<text>"."
 
 ### Reviewing a ticket (ticket detail)
 Source: `scope.md > The Unique Kernel`, `scope.md > Inspiration & Identity` (Sentry).
@@ -235,12 +245,12 @@ Source: `scope.md > The Unique Kernel`, `scope.md > Inspiration & Identity` (Sen
 - Right column, observed fields: each is a `Field` with label, borderless until focus, editable in place. Tags is a comma-separated input in the PoC.
 - "Suggested by AI" group header with the line "Based on the screenshot and the client's sentence. Check before you trust." Each inferred field shows its evidence as "Based on: …" in `meta`, or the empty text "Not enough in the screenshot to tell." with an **Add** button.
 - Saving: leaving an edited field saves it. "Saved" appears in `meta` next to the label for two seconds. On failure: toast "Couldn't save. Try again." and the field keeps the edited value.
-- Status select: New / In progress / Done. Changing it saves immediately with the same inline confirmation. Done tickets leave the default list view.
+- Status select: New / In progress / Done. Changing it saves immediately with the same inline confirmation. Done tickets stay in the thread, muted.
 - Priority select: Low / Medium / High, monochrome.
 - **Copy as Markdown** (with `Kbd` c): copies the ticket; toast "Copied as Markdown". Format, GitHub-Issues compatible, decided by Filip:
 
   ```markdown
-  ## <title>
+  ## SN-<number>: <title>
   **Where:** <location>
   **What happened:** <actualResult>
   **Expected:** <expectedResult> _(suggested)_
@@ -249,10 +259,11 @@ Source: `scope.md > The Unique Kernel`, `scope.md > Inspiration & Identity` (Sen
   2. <step>
   **Priority:** <priority> · **Tags:** <tag, tag>
   > Client: "<verbatim sentence>"
+  > Later: "<follow-up>"
   ```
 
-  Empty fields are omitted entirely, never written as "null" or as a placeholder. Inferred fields carry the `_(suggested)_` marker. Evidence lines, confidence, status, and language are not included.
-- Keyboard in detail: `c` copies Markdown, Esc returns to the list. Nothing else for the hackathon.
+  Empty fields are omitted entirely, never written as "null" or as a placeholder. One `> Later:` line per follow-up, oldest first, none when there are none. Inferred fields carry the `_(suggested)_` marker. Evidence lines, confidence, status, and language are not included.
+- Keyboard in detail: `c` copies Markdown, Esc returns to the chat. Nothing else for the hackathon.
 - Meta line under the title: extraction state badge, "Confidence 0.72", language code, and **Ask client** badge when applicable with the hint on hover or focus: "Not enough detail to act on. Ask the client one question."
 - **Pending state:** right column shows field labels with skeleton bars and the line "Reading screenshot…" with a spinner. Left column is complete. Actions available: Status and Copy as Markdown (Markdown then contains only the heading, with the client's sentence as the title, and the `> Client:` line).
 - **Failed state:** right column shows a `danger` panel "Couldn't read this screenshot" with a collapsed "Details" disclosure holding the raw error, and the **Retry extraction** button. All fields are editable so Filip can write the ticket by hand if he prefers. Pressing Retry: button reads "Retrying…" with a spinner, the ticket returns to the pending state, then resolves to extracted (toast "Extraction finished") or failed again (toast "Extraction failed again"). Retry is in scope with the one-hour build cap recorded in `scope.md > If We Lose Two Days`.
@@ -302,7 +313,8 @@ Decisions carried from `scope.md` (grilling, 2026-10-15) and approved by Filip a
 - **Sentence required, 10 characters, one field** — `scope.md > The POC Boundary`.
 - **Save on blur, inline "Saved"** — Linear-like speed without an edit mode or a custom component; toasts only for failures and copies.
 - **Markdown export: GitHub-Issues compatible, empty fields omitted, inferred fields marked `_(suggested)_`** — the marker carries the observed/inferred honesty into GitHub without padding the issue with placeholders.
-- **Keyboard: arrows or j/k, Enter, Esc, c** — Linear's speed at the smallest possible cost; nothing else for the hackathon.
+- **Keyboard: arrows or j/k, Enter, Esc, c** — Linear's speed at the smallest possible cost; nothing else for the hackathon. `c` works on the focused card in the thread too (2026-10-18).
+- **Dashboard as a three-column chat app** (Filip, 2026-10-18) — nav (Inbox, Done, the developer), clients grouped by recency with search and New project, and a thread of the client's messages with Snag's ticket cards. Ticket numbers `SN-<n>`. Status tabs replace the Extraction and Status selects. Done in the nav is the clients with nothing open; no Settings; "This blocks my work" moves to Later.
 - **Native picker instead of forced camera** — screenshots live in the gallery; `capture` would hide it.
 - **Base UI variant of shadcn/ui, Radix fallback** — approved; recorded as a spec decision so `4-spec` verifies the catalog before writing install steps.
 - **`react-dropzone` directly** (slice 3a, replaces the Kibo UI Dropzone + shadcn Attachment) — the hook gives the page-wide drop target and `open()` without an extra component layer.
@@ -318,9 +330,9 @@ Source: `scope.md > The POC Boundary`.
 - `/login` with access code, 30-day session, login rate limit, sign out.
 - Client report page as a small portal: New report form with native picker upload, this device's reports grouped In progress / Done with a timeline each, inline validation, save-first submission, report-link rate limit.
 - Extraction with two-tier output, evidence lines, empty-not-guessed inferred fields, English fields, verbatim sentence, confidence and language meta, automatic retry policy, failed state with Retry.
-- Chats: chat list per project, thread with message and ticket card per report, Copy report link, filters, keyboard-navigable cards, self-refreshing pending cards, empty states.
+- Chats: nav with Inbox and Done, clients column with search, recency groups and New project, a thread with the client's message, follow-ups and ticket card per report, status tabs, Copy report link, keyboard-navigable cards with `c`, self-refreshing pending cards, empty states.
 - Ticket detail with source column, inline editing with save on blur, status and priority, Copy as Markdown with the defined format, pending and failed states, screenshot dialog.
-- Seed script: one project with slug, seed tickets including one pre-extracted, fake data only.
+- Seed script: one project with slug and three tickets from a fictional demo page (extracted with a follow-up, Ask client, failed), fake data only.
 - Eval runner and README numbers (defined in scope; specified in `4-spec`).
 - Design system as specified under Look and Feel, applied to all four surfaces, every state finished.
 
@@ -328,7 +340,7 @@ Source: `scope.md > The POC Boundary`.
 
 Source: `scope.md > Later`.
 
-- **Project creation form and Regenerate link** — seed script covers the PoC; same stretch slot as deployment.
+- **Rename and Regenerate link** — creating a project moved into the PoC on 2026-10-18 (New project); renaming and regenerating stay out.
 - **Deployment** to the Hetzner box — half-day time box after eval numbers exist.
 - **Real multi-user auth** — nullable owner column on Project keeps the door open.
 - **Using the stored language** for a client-facing confirmation or reply draft.

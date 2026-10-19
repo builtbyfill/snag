@@ -289,7 +289,13 @@ export function ClientPortal({
                   {history?.length}
                 </span>
               </SheetTrigger>
-              <SheetContent side="left" showCloseButton={false} className="w-[85%] max-w-[300px] gap-0 border-line bg-pane p-0 text-ink shadow-none">
+              {/* Portalled to <body>, outside the page's dark wrapper: it sets "dark" itself. */}
+              <SheetContent
+                side="left"
+                showCloseButton={false}
+                data-surface="client"
+                className="dark w-[85%] max-w-[300px] gap-0 border-line bg-pane p-0 text-ink shadow-none"
+              >
                 <div className="flex shrink-0 items-center justify-between border-b border-line py-1.5 pr-2 pl-4">
                   <SheetTitle className="text-body font-semibold text-ink">{copy.list.title}</SheetTitle>
                   <SheetClose render={<Button variant="ghost" aria-label={copy.list.close} className="size-9 rounded-md pointer-coarse:size-11" />}>

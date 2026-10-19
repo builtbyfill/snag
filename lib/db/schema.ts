@@ -26,6 +26,9 @@ export const projects = pgTable('projects', {
 
 export const tickets = pgTable('tickets', {
   id: uuid('id').primaryKey().defaultRandom(),
+  // Shown as SN-<number> on cards, in the detail and in Markdown. One global sequence, so two
+  // reports at once can't get the same number (migration 0003).
+  number: integer('number').generatedAlwaysAsIdentity(),
   projectId: uuid('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   // source material
   clientSentence: text('client_sentence').notNull(),
@@ -60,6 +63,7 @@ export const tickets = pgTable('tickets', {
 }, (t) => [
   index('tickets_project_created_idx').on(t.projectId, t.createdAt.desc()),
   index('tickets_ip_hash_created_idx').on(t.reporterIpHash, t.createdAt),
+  uniqueIndex('tickets_number_idx').on(t.number),
 ]);
 
 export const attachments = pgTable('attachments', {
