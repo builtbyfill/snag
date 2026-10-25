@@ -1,0 +1,437 @@
+{
+  "generatedAt": "2026-10-25T19:21:46.052Z",
+  "model": "claude-sonnet-5-5",
+  "tickets": {
+    "002": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "The \"Odaberi →\" button should sit in its own space and not cover any text, so the full text in each service card can be read.",
+            "evidence": "Client says \"The blue button covers the text in the list, I can't read what it says.\" Text ending in \"nalaze.\" is cut off behind the button."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "layout",
+            "booking",
+            "overlap",
+            "button"
+          ],
+          "title": "Select buttons overlap text in service list",
+          "location": "Zakažite termin dialog, Usluga step (Odaberite uslugu)",
+          "priority": "medium",
+          "actualResult": "The dark blue \"Odaberi →\" buttons sit on top of other content in each service card. In the Interna medicina card the button hides part of a blue link ending in \"nalaze.\", and in the other cards it covers what appears to be a duration label."
+        },
+        "confidence": 0.85
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Select buttons overlap text in service list\",\"location\":\"Zakažite termin dialog, Usluga step (Odaberite uslugu)\",\"actualResult\":\"The dark blue \\\"Odaberi →\\\" buttons sit on top of other content in each service card. In the Interna medicina card the button hides part of a blue link ending in \\\"nalaze.\\\", and in the other cards it covers what appears to be a duration label.\",\"priority\":\"medium\",\"tags\":[\"layout\",\"booking\",\"overlap\",\"button\"]},\"inferred\":{\"expectedResult\":{\"value\":\"The \\\"Odaberi →\\\" button should sit in its own space and not cover any text, so the full text in each service card can be read.\",\"evidence\":\"Client says \\\"The blue button covers the text in the list, I can't read what it says.\\\" Text ending in \\\"nalaze.\\\" is cut off behind the button.\"},\"stepsToReproduce\":null},\"confidence\":0.85,\"language\":\"en\"}",
+      "inputTokens": 2726,
+      "outputTokens": 309,
+      "durationMs": 3062
+    },
+    "008": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "Days when the business is closed, such as Sunday, should not be offered as bookable dates.",
+            "evidence": "Client wrote: \"It offers me Sunday but you are closed on Sunday?\""
+          },
+          "stepsToReproduce": {
+            "value": [
+              "Open the \"Zakažite termin\" booking dialog.",
+              "Select the service \"Pedijatrija · 30 min\" and continue to the \"Termin\" step.",
+              "Look at the date strip under \"Odaberite dan, a zatim vrijeme koje vam odgovara.\" and check the Sunday 25 okt tile."
+            ],
+            "evidence": "The screenshot shows the \"Termin\" step active, \"Pedijatrija · 30 min\" as the service, and a date strip that includes a Sunday 25 okt tile."
+          }
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "booking",
+            "calendar",
+            "availability",
+            "form"
+          ],
+          "title": "Sunday offered as bookable although clinic is closed",
+          "location": "Zakažite termin dialog, step \"Termin\" (Odaberite termin)",
+          "priority": "medium",
+          "actualResult": "Client says the booking flow offers Sunday even though the business is closed on Sundays. In the screenshot, the date strip includes Sunday 25 okt as a faded tile with a dashed border (Tuesday 27 okt looks the same), and the time slots shown are for Monday, 26. oktobar. The screenshot does not clearly show Sunday being selectable."
+        },
+        "confidence": 0.45
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Sunday offered as bookable although clinic is closed\",\"location\":\"Zakažite termin dialog, step \\\"Termin\\\" (Odaberite termin)\",\"actualResult\":\"Client says the booking flow offers Sunday even though the business is closed on Sundays. In the screenshot, the date strip includes Sunday 25 okt as a faded tile with a dashed border (Tuesday 27 okt looks the same), and the time slots shown are for Monday, 26. oktobar. The screenshot does not clearly show Sunday being selectable.\",\"priority\":\"medium\",\"tags\":[\"booking\",\"calendar\",\"availability\",\"form\"]},\"inferred\":{\"expectedResult\":{\"value\":\"Days when the business is closed, such as Sunday, should not be offered as bookable dates.\",\"evidence\":\"Client wrote: \\\"It offers me Sunday but you are closed on Sunday?\\\"\"},\"stepsToReproduce\":{\"value\":[\"Open the \\\"Zakažite termin\\\" booking dialog.\",\"Select the service \\\"Pedijatrija · 30 min\\\" and continue to the \\\"Termin\\\" step.\",\"Look at the date strip under \\\"Odaberite dan, a zatim vrijeme koje vam odgovara.\\\" and check the Sunday 25 okt tile.\"],\"evidence\":\"The screenshot shows the \\\"Termin\\\" step active, \\\"Pedijatrija · 30 min\\\" as the service, and a date strip that includes a Sunday 25 okt tile.\"}},\"confidence\":0.45,\"language\":\"en\"}",
+      "inputTokens": 2725,
+      "outputTokens": 1132,
+      "durationMs": 9436
+    },
+    "017": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "A valid phone number such as 065 123 456 should be accepted so the client can continue to the next step.",
+            "evidence": "Error text says \"Provjerite broj telefona, npr. 065 123 456.\" and the client says \"It won't take my phone number.\""
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "form",
+            "validation",
+            "booking",
+            "phone"
+          ],
+          "title": "Phone number field rejects input on booking details step",
+          "location": "Zakažite termin (book appointment) dialog, step \"Podaci\" (Vaši podaci)",
+          "priority": "high",
+          "actualResult": "The \"Broj telefona\" field contains \"abc 12\" and is outlined in red with the message \"Provjerite broj telefona, npr. 065 123 456.\" The client says the phone number is not accepted."
+        },
+        "confidence": 0.7
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Phone number field rejects input on booking details step\",\"location\":\"Zakažite termin (book appointment) dialog, step \\\"Podaci\\\" (Vaši podaci)\",\"actualResult\":\"The \\\"Broj telefona\\\" field contains \\\"abc 12\\\" and is outlined in red with the message \\\"Provjerite broj telefona, npr. 065 123 456.\\\" The client says the phone number is not accepted.\",\"priority\":\"high\",\"tags\":[\"form\",\"validation\",\"booking\",\"phone\"]},\"inferred\":{\"expectedResult\":{\"value\":\"A valid phone number such as 065 123 456 should be accepted so the client can continue to the next step.\",\"evidence\":\"Error text says \\\"Provjerite broj telefona, npr. 065 123 456.\\\" and the client says \\\"It won't take my phone number.\\\"\"},\"stepsToReproduce\":null},\"confidence\":0.7,\"language\":\"en\"}",
+      "inputTokens": 2715,
+      "outputTokens": 296,
+      "durationMs": 2968
+    },
+    "021": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": null,
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "booking",
+            "dialog",
+            "form"
+          ],
+          "title": "Booking dialog service step does not work",
+          "location": "\"Zakažite termin\" booking panel, step 1 \"Usluga\" (Odaberite uslugu)",
+          "priority": "medium",
+          "actualResult": null
+        },
+        "confidence": 0.3
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Booking dialog service step does not work\",\"location\":\"\\\"Zakažite termin\\\" booking panel, step 1 \\\"Usluga\\\" (Odaberite uslugu)\",\"actualResult\":null,\"priority\":\"medium\",\"tags\":[\"booking\",\"dialog\",\"form\"]},\"inferred\":{\"expectedResult\":null,\"stepsToReproduce\":null},\"confidence\":0.3,\"language\":\"en\"}",
+      "inputTokens": 3997,
+      "outputTokens": 140,
+      "durationMs": 2123
+    },
+    "003": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "The heading should sit clear of the paragraph, with visible spacing between the last heading line and the first line of the paragraph.",
+            "evidence": "Client says the title \"runs over the text under it\"; the screenshot shows the heading's last line directly above the paragraph with almost no gap."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "layout",
+            "heading",
+            "spacing",
+            "hero"
+          ],
+          "title": "Hero heading overlaps paragraph text below it",
+          "location": "First page hero section (\"Zaštita i usklađenost poslovanja\")",
+          "priority": "low",
+          "actualResult": "The large three-line heading (\"Zaštita na radu / Zaštita od požara / Zaštita životne sredine\") sits very close to the paragraph beneath it (\"Utvrđujemo koje se obaveze...\"). The client says it runs over that text. In the screenshot the last heading line almost touches the first paragraph line, with no visible gap."
+        },
+        "confidence": 0.7
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Hero heading overlaps paragraph text below it\",\"location\":\"First page hero section (\\\"Zaštita i usklađenost poslovanja\\\")\",\"actualResult\":\"The large three-line heading (\\\"Zaštita na radu / Zaštita od požara / Zaštita životne sredine\\\") sits very close to the paragraph beneath it (\\\"Utvrđujemo koje se obaveze...\\\"). The client says it runs over that text. In the screenshot the last heading line almost touches the first paragraph line, with no visible gap.\",\"priority\":\"low\",\"tags\":[\"layout\",\"heading\",\"spacing\",\"hero\"]},\"inferred\":{\"expectedResult\":{\"value\":\"The heading should sit clear of the paragraph, with visible spacing between the last heading line and the first line of the paragraph.\",\"evidence\":\"Client says the title \\\"runs over the text under it\\\"; the screenshot shows the heading's last line directly above the paragraph with almost no gap.\"},\"stepsToReproduce\":null},\"confidence\":0.7,\"language\":\"en\"}",
+      "inputTokens": 4003,
+      "outputTokens": 343,
+      "durationMs": 3405
+    },
+    "013": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "The inquiry form should submit successfully, and the client should be told that the request was received.",
+            "evidence": "Client says \"it cannot send\" after filling the form; the \"Zatražite početnu procjenu\" button is the submit action, and the text below says they will contact the client after reviewing the inquiry."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "form",
+            "contact",
+            "submission",
+            "error"
+          ],
+          "title": "Inquiry form shows \"cannot be sent\" message on submit",
+          "location": "unknown",
+          "priority": "high",
+          "actualResult": "After the client filled the inquiry form, a message appears above the submit button: \"Upit trenutno nije moguće poslati. Pokušajte ponovo ili nas kontaktirajte direktno.\" (The inquiry cannot be sent at the moment. Try again or contact us directly.) The inquiry was not sent."
+        },
+        "confidence": 0.85
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Inquiry form shows \\\"cannot be sent\\\" message on submit\",\"location\":\"unknown\",\"actualResult\":\"After the client filled the inquiry form, a message appears above the submit button: \\\"Upit trenutno nije moguće poslati. Pokušajte ponovo ili nas kontaktirajte direktno.\\\" (The inquiry cannot be sent at the moment. Try again or contact us directly.) The inquiry was not sent.\",\"priority\":\"high\",\"tags\":[\"form\",\"contact\",\"submission\",\"error\"]},\"inferred\":{\"expectedResult\":{\"value\":\"The inquiry form should submit successfully, and the client should be told that the request was received.\",\"evidence\":\"Client says \\\"it cannot send\\\" after filling the form; the \\\"Zatražite početnu procjenu\\\" button is the submit action, and the text below says they will contact the client after reviewing the inquiry.\"},\"stepsToReproduce\":null},\"confidence\":0.85,\"language\":\"en\"}",
+      "inputTokens": 2720,
+      "outputTokens": 318,
+      "durationMs": 2731
+    },
+    "015": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "After submitting, the inquiry is sent and the form shows a confirmation or success message instead of staying in the sending state.",
+            "evidence": "Button label \"Slanje upita...\" and the note \"Nakon što pregledamo upit, kontaktiraćemo Vas radi dogovora o narednom koraku.\" imply the inquiry should be submitted and followed up."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "form",
+            "contact",
+            "submit",
+            "loading"
+          ],
+          "title": "Inquiry form stays on \"Slanje upita...\" and never completes",
+          "location": "Contact page inquiry form (fields Djelatnost, Opišite svoj upit; contact details and map on the right)",
+          "priority": "high",
+          "actualResult": "The submit button is greyed out and shows \"Slanje upita...\" (Sending inquiry...). The client says it just spins and nothing happens. No confirmation or error message is visible."
+        },
+        "confidence": 0.85
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Inquiry form stays on \\\"Slanje upita...\\\" and never completes\",\"location\":\"Contact page inquiry form (fields Djelatnost, Opišite svoj upit; contact details and map on the right)\",\"actualResult\":\"The submit button is greyed out and shows \\\"Slanje upita...\\\" (Sending inquiry...). The client says it just spins and nothing happens. No confirmation or error message is visible.\",\"priority\":\"high\",\"tags\":[\"form\",\"contact\",\"submit\",\"loading\"]},\"inferred\":{\"expectedResult\":{\"value\":\"After submitting, the inquiry is sent and the form shows a confirmation or success message instead of staying in the sending state.\",\"evidence\":\"Button label \\\"Slanje upita...\\\" and the note \\\"Nakon što pregledamo upit, kontaktiraćemo Vas radi dogovora o narednom koraku.\\\" imply the inquiry should be submitted and followed up.\"},\"stepsToReproduce\":null},\"confidence\":0.85,\"language\":\"en\"}",
+      "inputTokens": 4006,
+      "outputTokens": 335,
+      "durationMs": 4440
+    },
+    "016": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "The inquiry form should be submitted successfully and the client's request sent.",
+            "evidence": "Client wrote \"Form doesn't go through.\" and the screenshot shows a contact inquiry form with required fields."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "form",
+            "contact",
+            "submission"
+          ],
+          "title": "Contact form does not submit",
+          "location": "Contact inquiry page, heading \"Opišite djelatnost i razlog obraćanja\"",
+          "priority": "high",
+          "actualResult": null
+        },
+        "confidence": 0.55
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Contact form does not submit\",\"location\":\"Contact inquiry page, heading \\\"Opišite djelatnost i razlog obraćanja\\\"\",\"actualResult\":null,\"priority\":\"high\",\"tags\":[\"form\",\"contact\",\"submission\"]},\"inferred\":{\"expectedResult\":{\"value\":\"The inquiry form should be submitted successfully and the client's request sent.\",\"evidence\":\"Client wrote \\\"Form doesn't go through.\\\" and the screenshot shows a contact inquiry form with required fields.\"},\"stepsToReproduce\":null},\"confidence\":0.55,\"language\":\"en\"}",
+      "inputTokens": 3997,
+      "outputTokens": 200,
+      "durationMs": 2143
+    },
+    "004": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": null,
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "layout",
+            "mobile",
+            "rooms",
+            "carousel"
+          ],
+          "title": "Room cards cramped on mobile, second card cut off",
+          "location": "unknown",
+          "priority": "medium",
+          "actualResult": null
+        },
+        "confidence": 0.4
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Room cards cramped on mobile, second card cut off\",\"location\":\"unknown\",\"actualResult\":null,\"priority\":\"medium\",\"tags\":[\"layout\",\"mobile\",\"rooms\",\"carousel\"]},\"inferred\":{\"expectedResult\":null,\"stepsToReproduce\":null},\"confidence\":0.4,\"language\":\"en\"}",
+      "inputTokens": 2729,
+      "outputTokens": 116,
+      "durationMs": 2526
+    },
+    "007": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "The total for Ana Kovač's two-night stay should be higher, reflecting the price for two nights.",
+            "evidence": "Client says \"two nights but shows 55 BAM\"; the row shows 26.10.2026 to 28.10.2026 with Ukupno 55 BAM, while other rows show 180-285 BAM."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "reservations",
+            "pricing",
+            "total",
+            "list"
+          ],
+          "title": "Ana Kovač's two-night reservation shows only 55 BAM total",
+          "location": "Reservations list (\"Sve rezervacije\"), Pinewood Guesthouse",
+          "priority": "medium",
+          "actualResult": "The Ana Kovač row (web, unit S01, 26.10.2026 to 28.10.2026, Confirmed) shows a total of 55 BAM. The client says this is too low for a two-night stay. The amount is also not bold, unlike the other rows."
+        },
+        "confidence": 0.85
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Ana Kovač's two-night reservation shows only 55 BAM total\",\"location\":\"Reservations list (\\\"Sve rezervacije\\\"), Pinewood Guesthouse\",\"actualResult\":\"The Ana Kovač row (web, unit S01, 26.10.2026 to 28.10.2026, Confirmed) shows a total of 55 BAM. The client says this is too low for a two-night stay. The amount is also not bold, unlike the other rows.\",\"priority\":\"medium\",\"tags\":[\"reservations\",\"pricing\",\"total\",\"list\"]},\"inferred\":{\"expectedResult\":{\"value\":\"The total for Ana Kovač's two-night stay should be higher, reflecting the price for two nights.\",\"evidence\":\"Client says \\\"two nights but shows 55 BAM\\\"; the row shows 26.10.2026 to 28.10.2026 with Ukupno 55 BAM, while other rows show 180-285 BAM.\"},\"stepsToReproduce\":null},\"confidence\":0.85,\"language\":\"en\"}",
+      "inputTokens": 4009,
+      "outputTokens": 340,
+      "durationMs": 4384
+    },
+    "010": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "Each reservation should appear only once in the list.",
+            "evidence": "Client says \"There are two of the same reservation in the list\"; the first two rows for Ana Kovač are identical."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "reservations",
+            "duplicate",
+            "list",
+            "data"
+          ],
+          "title": "Duplicate reservation shown in All reservations list",
+          "location": "Rezervacije page (\"Sve rezervacije\") in Pinewood Guesthouse",
+          "priority": "medium",
+          "actualResult": "The reservations list shows two identical rows for Ana Kovač (arrival 26.10.2026, departure 28.10.2026, unit S01, source Web, status Potvrđena, 110 BAM). The counter reads \"Prikazano 8 od 8\"."
+        },
+        "confidence": 0.9
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Duplicate reservation shown in All reservations list\",\"location\":\"Rezervacije page (\\\"Sve rezervacije\\\") in Pinewood Guesthouse\",\"actualResult\":\"The reservations list shows two identical rows for Ana Kovač (arrival 26.10.2026, departure 28.10.2026, unit S01, source Web, status Potvrđena, 110 BAM). The counter reads \\\"Prikazano 8 od 8\\\".\",\"priority\":\"medium\",\"tags\":[\"reservations\",\"duplicate\",\"list\",\"data\"]},\"inferred\":{\"expectedResult\":{\"value\":\"Each reservation should appear only once in the list.\",\"evidence\":\"Client says \\\"There are two of the same reservation in the list\\\"; the first two rows for Ana Kovač are identical.\"},\"stepsToReproduce\":null},\"confidence\":0.9,\"language\":\"en\"}",
+      "inputTokens": 4001,
+      "outputTokens": 288,
+      "durationMs": 2738
+    },
+    "018": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "Availability check should run with valid dates, or the form should make clear that the departure date must be after the arrival date.",
+            "evidence": "Client says \"Can't check availability, it says to pick dates\"; the error asks for a later departure date than arrival."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "booking",
+            "form",
+            "validation",
+            "dates"
+          ],
+          "title": "Availability check rejects dates; departure date earlier than arrival",
+          "location": "Pinewood Guesthouse booking form (Dolazak / Odlazak / Broj gostiju, \"Provjerite dostupnost\")",
+          "priority": "high",
+          "actualResult": "After the client tried to check availability, a red message reads \"Izaberite datum dolaska i kasniji datum odlaska\" (choose an arrival date and a later departure date). The form shows arrival 05.11.2026 and departure 03.11.2026, and no availability results are shown."
+        },
+        "confidence": 0.8
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Availability check rejects dates; departure date earlier than arrival\",\"location\":\"Pinewood Guesthouse booking form (Dolazak / Odlazak / Broj gostiju, \\\"Provjerite dostupnost\\\")\",\"actualResult\":\"After the client tried to check availability, a red message reads \\\"Izaberite datum dolaska i kasniji datum odlaska\\\" (choose an arrival date and a later departure date). The form shows arrival 05.11.2026 and departure 03.11.2026, and no availability results are shown.\",\"priority\":\"high\",\"tags\":[\"booking\",\"form\",\"validation\",\"dates\"]},\"inferred\":{\"expectedResult\":{\"value\":\"Availability check should run with valid dates, or the form should make clear that the departure date must be after the arrival date.\",\"evidence\":\"Client says \\\"Can't check availability, it says to pick dates\\\"; the error asks for a later departure date than arrival.\"},\"stepsToReproduce\":null},\"confidence\":0.8,\"language\":\"en\"}",
+      "inputTokens": 2721,
+      "outputTokens": 330,
+      "durationMs": 3243
+    },
+    "006": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "Patient names and schedule text should be shown with enough contrast to be read easily.",
+            "evidence": "Client says \"I can't read the names\"; screenshot shows names like \"Filip Barić\" and \"Ana Marić\" in faint grey."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "layout",
+            "contrast",
+            "schedule",
+            "readability"
+          ],
+          "title": "Schedule text and names appear grey and hard to read",
+          "location": "Dental schedule dashboard, Ponedjeljak 12. oktobar view with Novi termin panel",
+          "priority": "medium",
+          "actualResult": "Per the client, everything in the schedule is grey and the names cannot be read. The screenshot shows low-contrast pale grey text on the doctor cards, the timeline rows, the legend, and the Novi termin form labels."
+        },
+        "confidence": 0.7
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Schedule text and names appear grey and hard to read\",\"location\":\"Dental schedule dashboard, Ponedjeljak 12. oktobar view with Novi termin panel\",\"actualResult\":\"Per the client, everything in the schedule is grey and the names cannot be read. The screenshot shows low-contrast pale grey text on the doctor cards, the timeline rows, the legend, and the Novi termin form labels.\",\"priority\":\"medium\",\"tags\":[\"layout\",\"contrast\",\"schedule\",\"readability\"]},\"inferred\":{\"expectedResult\":{\"value\":\"Patient names and schedule text should be shown with enough contrast to be read easily.\",\"evidence\":\"Client says \\\"I can't read the names\\\"; screenshot shows names like \\\"Filip Barić\\\" and \\\"Ana Marić\\\" in faint grey.\"},\"stepsToReproduce\":null},\"confidence\":0.7,\"language\":\"en\"}",
+      "inputTokens": 4007,
+      "outputTokens": 300,
+      "durationMs": 3323
+    },
+    "009": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": null,
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "schedule",
+            "display",
+            "appointments",
+            "dashboard"
+          ],
+          "title": "Doctor card shows \"Nema pacijenta\" although client says she has six appointments",
+          "location": "Danas tab, dr Lana Vidić card (Stolica 3)",
+          "priority": "medium",
+          "actualResult": "The card for dr Lana Vidić says \"Nema pacijenta\" (no patient), with \"slobodna do 11:00\". The client says Ana has six appointments. The same card lists next appointments at 11:00 and 12:30 plus \"+4 kasnije\". The client's \"Ana\" could mean Lana Vidić or Ana Kovač, so which doctor is meant is unclear."
+        },
+        "confidence": 0.4
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Doctor card shows \\\"Nema pacijenta\\\" although client says she has six appointments\",\"location\":\"Danas tab, dr Lana Vidić card (Stolica 3)\",\"actualResult\":\"The card for dr Lana Vidić says \\\"Nema pacijenta\\\" (no patient), with \\\"slobodna do 11:00\\\". The client says Ana has six appointments. The same card lists next appointments at 11:00 and 12:30 plus \\\"+4 kasnije\\\". The client's \\\"Ana\\\" could mean Lana Vidić or Ana Kovač, so which doctor is meant is unclear.\",\"priority\":\"medium\",\"tags\":[\"schedule\",\"display\",\"appointments\",\"dashboard\"]},\"inferred\":{\"expectedResult\":null,\"stepsToReproduce\":null},\"confidence\":0.4,\"language\":\"en\"}",
+      "inputTokens": 2721,
+      "outputTokens": 973,
+      "durationMs": 7923
+    },
+    "011": {
+      "parsed": {
+        "inferred": {
+          "expectedResult": {
+            "value": "With the free slots filter active, only free slots should be shown and booked appointments should be hidden.",
+            "evidence": "Client says \"The free slots filter doesn't filter anything\" and the \"Slobodno · 15\" button is highlighted."
+          },
+          "stepsToReproduce": null
+        },
+        "language": "en",
+        "observed": {
+          "tags": [
+            "filter",
+            "schedule",
+            "calendar",
+            "list"
+          ],
+          "title": "Free slots filter does not filter the schedule",
+          "location": "Schedule view for Monday, 12 October (dentist chairs Stolica 1-3, with Novi termin panel)",
+          "priority": "medium",
+          "actualResult": "The \"Slobodno · 15\" filter appears active (highlighted dark), but the schedule columns still list booked appointments (e.g. Filip Barić, Damir Rušić, Nina Perić, Hana Babić) along with the free slots."
+        },
+        "confidence": 0.7
+      },
+      "rawResponse": "{\"observed\":{\"title\":\"Free slots filter does not filter the schedule\",\"location\":\"Schedule view for Monday, 12 October (dentist chairs Stolica 1-3, with Novi termin panel)\",\"actualResult\":\"The \\\"Slobodno · 15\\\" filter appears active (highlighted dark), but the schedule columns still list booked appointments (e.g. Filip Barić, Damir Rušić, Nina Perić, Hana Babić) along with the free slots.\",\"priority\":\"medium\",\"tags\":[\"filter\",\"schedule\",\"calendar\",\"list\"]},\"inferred\":{\"expectedResult\":{\"value\":\"With the free slots filter active, only free slots should be shown and booked appointments should be hidden.\",\"evidence\":\"Client says \\\"The free slots filter doesn't filter anything\\\" and the \\\"Slobodno · 15\\\" button is highlighted.\"},\"stepsToReproduce\":null},\"confidence\":0.7,\"language\":\"en\"}",
+      "inputTokens": 4003,
+      "outputTokens": 308,
+      "durationMs": 3143
+    }
+  }
+}
