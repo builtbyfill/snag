@@ -69,7 +69,7 @@ export function TicketCard({ card }: { card: CardView }) {
             <span className={cn("mt-1.5 line-clamp-2 block text-body font-semibold", done ? "text-ink-muted" : "text-ink")}>
               {card.title ?? c.untitled}
             </span>
-            <span className={cn("mt-0.5 block truncate text-meta", done ? "text-ink-muted" : "text-ink-secondary")}>
+            <span className={cn("mt-0.5 line-clamp-2 block text-meta", done ? "text-ink-muted" : "text-ink-secondary")}>
               <span className="text-ink-muted">{c.whatHappens}</span>{" "}
               {card.actualResult ?? <span className="text-ink-muted">{c.unclear}</span>}
             </span>

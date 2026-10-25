@@ -34,7 +34,6 @@ describe('client page copy (English only, Filip 2026-10-17)', () => {
 
   it('never makes the client count characters or press a platform key', () => {
     expect(clientCopy.errors.sentenceShort).not.toMatch(/\d/);
-    expect(clientCopy.composer.reassurance).not.toMatch(/\d/);
   });
 
   it('has a headline and a next line for every status, and an announcement for a sent report', () => {
@@ -47,7 +46,7 @@ describe('client page copy (English only, Filip 2026-10-17)', () => {
 
   it('has one short line under each timeline step', () => {
     for (const status of ['new', 'in_progress', 'done'] as const) expect(clientCopy.report.stepLines[status], status).toMatch(/\S/);
-    expect(clientCopy.help.link).toMatch(/\?$/);
+    expect(clientCopy.list.help).toBe('Help');
   });
 
   it('explains how to take a screenshot in three steps, with a line per device in step 2', () => {

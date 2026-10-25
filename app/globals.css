@@ -29,7 +29,7 @@
  *   danger #ba342a            5.8 /  5.4 /  5.0 /  4.8 /  4.6 /  5.4 /  5.0
  *     (the brief's #c0362c is 4.3 on selected; lightness lowered, hue kept)
  *   ink on marker #e4f56a 14.6.
- * Control edges, line-strong #7f7f75: 4.0 / 3.8 / 3.5 / 3.3 / 3.2 / 3.8 / 3.5. Focus ring (ink)
+ * Control edges, line-strong #86867c: 3.7 / 3.4 / 3.2 / 3.0 / 2.9 on selected (no control sits on it) / 3.4 / 3.2. Focus ring (ink)
  * 13.7 or more. Hairlines #e2e2dc (1.3 on white) separate areas only.
  *
  * On the frame #121214 / its hover #1c1c20 / the active nav item #24242a:
@@ -50,7 +50,7 @@
   --ink-muted: #66665e;
   --line: #e2e2dc; /* hairlines */
   --line-medium: #e2e2dc; /* raised edges and the screenshot frame */
-  --line-strong: #7f7f75; /* control edges, 3:1 */
+  --line-strong: #86867c; /* control edges: 3.4 on the pane, 3.2 on sunken, 3.0 on hover, 3.7 on white */
   --line-quiet: #c9c9c1; /* decorative strong lines */
 
   /* List surfaces: the clients column and the client page's "Your reports" + Help pane. */

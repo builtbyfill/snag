@@ -2,8 +2,6 @@ import { ArrowLeftIcon, MessageCircleQuestionIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PriorityBars } from "@/components/priority-bars";
-import { StatusGlyph } from "@/components/status-glyph";
 import { requireSession } from "@/lib/auth/session";
 import { adminCopy, fillIn } from "@/lib/copy/admin";
 import { getDb } from "@/lib/db/client";
@@ -104,36 +102,9 @@ export default async function TicketPage({
       </div>
 
       <div className="mx-auto w-full max-w-[1100px] px-4 py-6 md:px-8">
-        <p className="font-mono text-meta text-ink-secondary">SN-{ticket.number}</p>
-        {pending ? (
-          <h1 className="mt-1 text-display text-ink">{ticket.clientSentence}</h1>
-        ) : (
-          <h1 className="mt-1">
-            <EditableField
-              ticketId={ticket.id}
-              field="title"
-              label={c.titleLabel}
-              value={ticket.title ?? ""}
-              placeholder={c.titlePlaceholder}
-              aiOriginal={ai ? ai.title : undefined}
-              edited={ticket.editedFields.includes("title")}
-              large
-            />
-          </h1>
-        )}
-
-        {/* The meta row holds what you act on: status, priority, confidence, the Ask client flag. */}
-        <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta text-ink-secondary">
-          <span className="flex items-center gap-1.5">
-            <StatusGlyph status={ticket.status} className="size-3.5" />
-            {adminCopy.card.status[ticket.status]}
-          </span>
-          {ticket.priority && (
-            <span className="flex items-center gap-1.5">
-              <PriorityBars priority={ticket.priority} />
-              {adminCopy.card.priority[ticket.priority]}
-            </span>
-          )}
+        {/* The id line: the number, the confidence chip, and the flags. Status and priority live in the dropdowns below. */}
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta text-ink-secondary">
+          <span className="font-mono">SN-{ticket.number}</span>
           {extracted && confidence && (
             <span className="font-mono text-ink-muted">
               <span className="sr-only">{fillIn(adminCopy.card.confidence, { value: confidence.number, level: confidence.word })}</span>
@@ -151,6 +122,23 @@ export default async function TicketPage({
             </span>
           )}
         </p>
+        {pending ? (
+          <h1 className="mt-1 text-display text-ink">{ticket.clientSentence}</h1>
+        ) : (
+          <h1 className="mt-1">
+            <EditableField
+              ticketId={ticket.id}
+              field="title"
+              label={c.titleLabel}
+              value={ticket.title ?? ""}
+              placeholder={c.titlePlaceholder}
+              aiOriginal={ai ? ai.title : undefined}
+              edited={ticket.editedFields.includes("title")}
+              large
+            />
+          </h1>
+        )}
+
         {!pending && (
           <details className="mt-1 text-meta text-ink-muted">
             <summary className="cursor-pointer select-none hover:text-ink-secondary">{c.detailsLine}</summary>

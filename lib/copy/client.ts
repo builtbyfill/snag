@@ -23,7 +23,7 @@ export const clientCopy = {
     title: 'Your reports',
     newReport: 'New report',
     account: 'Client', // under the project name in the sidebar's account row
-    settings: 'Settings', // opens the help and contact on a desktop
+    help: 'Help', // the sidebar's only entry for the screenshot steps and contact
     close: 'Close',
   },
   welcome: {
@@ -44,7 +44,6 @@ export const clientCopy = {
     send: 'Send',
     sending: 'Sending…',
     slow: 'Still sending. Your screenshot and text stay here.',
-    reassurance: "We'll get back to you if we need more details.", // Filip's wording, 2026-10-18
     dropHint: 'Drop the screenshot here',
   },
   // One report's chat: the client can add text to it, or start a new report for something else.
@@ -90,7 +89,6 @@ export const clientCopy = {
   },
   help: {
     title: 'How to take a screenshot',
-    link: 'How do I take a screenshot?', // beside the composer on a desktop; opens the steps
     // One step per entry; step 2 has a line per device.
     steps: [
       ['Open the screen that shows the problem.'],

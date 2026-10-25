@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ClientCopy } from "@/lib/copy/client";
 import type { ReportErrorCode } from "@/lib/reports/validate";
 import { cn } from "@/lib/utils";
-import { HelpPopover } from "./help-popover";
 
 export type Chosen = { file: File; thumb: string; url: string; preview: Blob };
 export type Problem = { field: "screenshot" | "sentence" | "form"; code: ReportErrorCode };
@@ -118,8 +117,12 @@ export function Composer({
       )}
 
       {sentence.trim() === "" && (
-        <div role="group" aria-labelledby={chipsLabelId} className="flex flex-wrap items-center gap-1.5">
-          <span id={chipsLabelId} className="text-meta text-ink-muted">
+        <div
+          role="group"
+          aria-labelledby={chipsLabelId}
+          className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+        >
+          <span id={chipsLabelId} className="shrink-0 text-meta text-ink-muted">
             {c.chipsLabel}
           </span>
           {c.chips.map((chip) => (
@@ -127,7 +130,7 @@ export function Composer({
               key={chip}
               type="button"
               onClick={() => onChip(chip)}
-              className="h-7 rounded-full border border-line-strong bg-surface px-3 text-meta text-ink transition-colors duration-(--motion-fast) hover:border-ink hover:bg-hover active:translate-y-px pointer-coarse:h-11"
+              className="h-7 shrink-0 rounded-full border border-line-strong bg-surface px-3 text-meta text-ink transition-colors duration-(--motion-fast) hover:border-ink hover:bg-hover active:translate-y-px pointer-coarse:h-11"
             >
               {chip}
             </button>
@@ -197,13 +200,10 @@ export function Composer({
         </Button>
       </div>
 
-      <div className="flex items-center justify-between gap-3 text-meta text-ink-muted">
-        {/* On a desktop the right pane already says what happens next, so only the slow note shows there. */}
-        <p aria-live="polite" className={cn(!(sending && slow) && "lg:hidden")}>
-          {sending && slow ? c.slow : c.reassurance}
-        </p>
-        <HelpPopover copy={copy} className="hidden lg:inline-flex" />
-      </div>
+      {/* Only while a send is taking long; otherwise nothing under the field. */}
+      <p aria-live="polite" className="text-meta text-ink-muted empty:hidden">
+        {sending && slow ? c.slow : ""}
+      </p>
       </div>
     </form>
   );

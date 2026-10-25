@@ -1,4 +1,5 @@
 import type { HistoryEntry } from './history';
+import { officeParts } from './sent-at';
 
 type Status = 'new' | 'in_progress' | 'done';
 
@@ -24,9 +25,9 @@ export function groupByStatus(history: HistoryEntry[], statuses: Record<string, 
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-/** Day and short month for the date tile in lists (local time). */
+/** Day and short month for the date tile in lists, in the office's zone (the same on the server and in the browser). */
 export function dateTile(iso: string): { day: string; month: string } {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return { day: '', month: '' };
-  return { day: String(d.getDate()), month: MONTHS[d.getMonth()] };
+  const d = officeParts(iso);
+  if (!d) return { day: '', month: '' };
+  return { day: String(d.day), month: MONTHS[d.month - 1] };
 }

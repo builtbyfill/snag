@@ -26,8 +26,10 @@ describe('groupReports (client list: In progress / Done, newest first)', () => {
 
 describe('dateTile', () => {
   it('gives the day and a short uppercase month for the list tile', () => {
-    expect(dateTile(new Date(2026, 9, 17, 9, 0).toISOString())).toEqual({ day: '17', month: 'OCT' });
-    expect(dateTile(new Date(2026, 0, 3, 9, 0).toISOString())).toEqual({ day: '3', month: 'JAN' });
+    expect(dateTile('2026-10-17T07:00:00Z')).toEqual({ day: '17', month: 'OCT' });
+    expect(dateTile('2026-01-03T08:00:00Z')).toEqual({ day: '3', month: 'JAN' });
+    // 23:30 UTC is already the next day in the office's zone, on the server and in the browser alike.
+    expect(dateTile('2026-10-16T23:30:00Z')).toEqual({ day: '17', month: 'OCT' });
   });
 
   it('returns empty parts for an unreadable date', () => {

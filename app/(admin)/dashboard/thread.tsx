@@ -191,7 +191,7 @@ export function Thread({
             </ThreadEmpty>
           )
         ) : (
-          <div ref={listRef} className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-4 pt-6 pb-16 md:px-8">
+          <div ref={listRef} className="mx-auto flex w-full max-w-[760px] flex-col gap-8 px-4 pt-6 pb-16 md:px-8">
             {cards.map((card) => (
               <ReportMessage key={card.id} card={card} client={client} />
             ))}
