@@ -14,6 +14,23 @@ describe('committed eval files', () => {
   });
 });
 
+describe('draft cases', () => {
+  it('accepts a case with an empty sentence and empty reference as a draft, and tells it apart', async () => {
+    const { isDraft } = await import('@/eval/files');
+    const cases = EvalCases.parse(json('eval/cases.json'));
+    const drafts = cases.filter(isDraft);
+    expect(drafts.length).toBeGreaterThan(0);
+    expect(drafts.every((c) => c.sentence === '' && c.reference.expectedResult === null)).toBe(true);
+    expect(cases.filter((c) => !isDraft(c)).map((c) => c.id)).toContain('001');
+  });
+
+  it('refuses a half-written case: a sentence with an empty reference is not a draft', () => {
+    const cases = json('eval/cases.json') as Record<string, unknown>[];
+    const half = { ...cases[1], sentence: 'Ten characters here.' };
+    expect(EvalCases.safeParse([half]).success).toBe(false);
+  });
+});
+
 describe('case schema', () => {
   it('rejects a misspelled reference key instead of scoring it silently', () => {
     const bad = [{

@@ -30,7 +30,32 @@ export const EvalCase = z.strictObject({
 });
 export type EvalCase = z.infer<typeof EvalCase>;
 
-export const EvalCases = z.array(EvalCase).refine(
+/**
+ * A case whose screenshot exists but whose sentence and reference haven't been written yet
+ * (eval/fixtures/README.md). The runner skips drafts and counts them, so an unfinished set
+ * never scores as anything.
+ */
+export const DraftCase = z.strictObject({
+  id: z.string().regex(/^\d{3}$/),
+  image: z.string().startsWith('images/'),
+  sentence: z.literal(''),
+  author: z.literal(''),
+  nonTechnicalAuthor: z.literal(false),
+  reference: z.strictObject({
+    title: z.strictObject({ mustMention: z.array(z.never()) }),
+    location: z.strictObject({ accept: z.array(z.never()) }),
+    actualResult: z.strictObject({ mustMention: z.array(z.never()), nullable: z.boolean() }),
+    priority: z.enum(['low', 'medium', 'high']),
+    tags: z.strictObject({ anyOf: z.array(z.never()) }),
+    expectedResult: z.null(),
+    stepsToReproduce: z.null(),
+  }),
+  notes: z.string().optional(),
+});
+export type DraftCase = z.infer<typeof DraftCase>;
+export const isDraft = (c: EvalCase | DraftCase): c is DraftCase => c.sentence === '';
+
+export const EvalCases = z.array(z.union([EvalCase, DraftCase])).refine(
   (cases) => new Set(cases.map((c) => c.id)).size === cases.length,
   'case ids must be unique',
 );

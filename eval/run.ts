@@ -15,7 +15,7 @@ import { readExtractionEnv } from '@/lib/env';
 import { extractTicket, type ExtractionOutcome, type ExtractionOutput } from '@/lib/extraction';
 import type { ImageMime } from '@/lib/extraction/image';
 import { PROMPT_VERSION } from '@/lib/extraction/prompt';
-import { EvalCases, Verdicts, type EvalCase } from './files';
+import { EvalCases, Verdicts, isDraft, type EvalCase } from './files';
 import {
   FIELDS, agreement, confidenceCheck, scoreCase, summarize, usedZodRetry,
   type CaseRow, type CaseScore, type FieldName, type FieldVerdict, type Reference,
@@ -32,7 +32,10 @@ async function main() {
   const review = process.argv.includes('--review');
   if (!Number.isInteger(runs) || runs < 1 || runs > 5) throw new Error('--runs must be a whole number from 1 to 5');
 
-  const cases = EvalCases.parse(await readJson('cases.json'));
+  const all = EvalCases.parse(await readJson('cases.json'));
+  const drafts = all.filter(isDraft);
+  if (drafts.length > 0) console.log(`${drafts.length} case(s) not written yet, skipped: ${drafts.map((c) => c.id).join(', ')}`);
+  const cases = all.filter((c): c is EvalCase => !isDraft(c));
   const verdicts = existsSync(path.join(here, 'verdicts.json')) ? Verdicts.parse(await readJson('verdicts.json')) : {};
   const selected = only ? cases.filter((c) => c.id === only) : cases;
   if (selected.length === 0) throw new Error(only ? `No case with id ${only}` : 'eval/cases.json has no cases');

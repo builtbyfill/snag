@@ -6,14 +6,566 @@
     "author": "friend, non-technical, Bosnian",
     "nonTechnicalAuthor": true,
     "reference": {
-      "title": { "mustMention": [["details", "Podaci"], ["empty", "not filled", "placeholder"]] },
-      "location": { "accept": ["Podaci", "details step"] },
-      "actualResult": { "mustMention": ["consent"], "nullable": false },
+      "title": {
+        "mustMention": [
+          [
+            "details",
+            "Podaci"
+          ],
+          [
+            "empty",
+            "not filled",
+            "placeholder"
+          ]
+        ]
+      },
+      "location": {
+        "accept": [
+          "Podaci",
+          "details step"
+        ]
+      },
+      "actualResult": {
+        "mustMention": [
+          "consent"
+        ],
+        "nullable": false
+      },
       "priority": "medium",
-      "tags": { "anyOf": ["form", "booking", "layout", "validation"] },
-      "expectedResult": { "mustMention": [], "orNull": true },
+      "tags": {
+        "anyOf": [
+          "form",
+          "booking",
+          "layout",
+          "validation"
+        ]
+      },
+      "expectedResult": {
+        "mustMention": [],
+        "orNull": true
+      },
       "stepsToReproduce": null
     },
-    "notes": "Medic+ booking form (local app, synthetic data), mobile, step \"Podaci\" after Nastavi with empty fields. The friend looked at the screenshot and wrote the sentence without being told the problem. The red required-field errors are correct behavior (the fields look empty), so this is not a booking bug; the real bug is the consent checkbox label hidden behind the sticky Nazad/Nastavi buttons. A good extraction must not invent a server error. Ideal title, per Filip: \"Client blocked on details step, fields appear empty\". Expected result may be null or inferred: the client didn't say what they expected; the invented-fields check covers made-up values. Steps are not inferable. Pattern to watch across cases: the model treats a user mistake (empty fields) as a bug, in the title and with high priority."
+    "notes": "clinic booking form (local app, synthetic data), mobile, step \"Podaci\" after Nastavi with empty fields. The friend looked at the screenshot and wrote the sentence without being told the problem. The red required-field errors are correct behavior (the fields look empty), so this is not a booking bug; the real bug is the consent checkbox label hidden behind the sticky Nazad/Nastavi buttons. A good extraction must not invent a server error. Ideal title, per Filip: \"Client blocked on details step, fields appear empty\". Expected result may be null or inferred: the client didn't say what they expected; the invented-fields check covers made-up values. Steps are not inferable. Pattern to watch across cases: the model treats a user mistake (empty fields) as a bug, in the title and with high priority."
+  },
+  {
+    "id": "002",
+    "image": "images/002.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Northwind Clinic, phone. Visual bug: The \"Odaberi\" button sits on top of the service description, cutting off the text under it. See eval/fixtures/README.md."
+  },
+  {
+    "id": "003",
+    "image": "images/003.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Safeguard Services, desktop. Visual bug: The hero heading overlaps the paragraph under it. See eval/fixtures/README.md."
+  },
+  {
+    "id": "004",
+    "image": "images/004.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Pinewood Guesthouse, phone. Visual bug: The room cards are squeezed into three columns on a phone, with prices and names wrapping into single letters. See eval/fixtures/README.md."
+  },
+  {
+    "id": "005",
+    "image": "images/005.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Safeguard Services, phone. Visual bug: The hero photo is missing; a broken-image placeholder shows in its place. See eval/fixtures/README.md."
+  },
+  {
+    "id": "006",
+    "image": "images/006.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Brightsmile Dental, desktop. Visual bug: The day list is in pale grey text on white, unreadable. See eval/fixtures/README.md."
+  },
+  {
+    "id": "007",
+    "image": "images/007.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Pinewood Guesthouse, desktop. Functional bug: A two-night stay at 55 BAM a night shows a total of 55 BAM. See eval/fixtures/README.md."
+  },
+  {
+    "id": "008",
+    "image": "images/008.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Northwind Clinic, phone. Functional bug: The slot step offers a Sunday, when the clinic is closed. See eval/fixtures/README.md."
+  },
+  {
+    "id": "009",
+    "image": "images/009.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Brightsmile Dental, phone. Functional bug: The first doctor's day list says \"Nema termina.\" although the header counts 6 appointments. See eval/fixtures/README.md."
+  },
+  {
+    "id": "010",
+    "image": "images/010.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Pinewood Guesthouse, desktop. Functional bug: The same reservation appears twice in the list. See eval/fixtures/README.md."
+  },
+  {
+    "id": "011",
+    "image": "images/011.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Brightsmile Dental, desktop. Functional bug: The \"Slobodno\" filter is selected but the list still shows every appointment. See eval/fixtures/README.md."
+  },
+  {
+    "id": "012",
+    "image": "images/012.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Pinewood Guesthouse, phone. Error state: The rooms page answers with a 500 error page. See eval/fixtures/README.md."
+  },
+  {
+    "id": "013",
+    "image": "images/013.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Safeguard Services, phone. Error state: Sending the contact form fails with a network error; the form shows the \"cannot send\" message. See eval/fixtures/README.md."
+  },
+  {
+    "id": "014",
+    "image": "images/014.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Safeguard Services, phone. Error state: A correctly filled e-mail field shows \"Unesite ispravnu e-mail adresu.\" See eval/fixtures/README.md."
+  },
+  {
+    "id": "015",
+    "image": "images/015.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Safeguard Services, desktop. Error state: The contact form stays on \"Slanje upita…\" for ever; the request never completes. See eval/fixtures/README.md."
+  },
+  {
+    "id": "016",
+    "image": "images/016.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Safeguard Services, desktop. User mistake (not a bug): The contact form was sent with the required fields empty; the app shows its own validation message. See eval/fixtures/README.md."
+  },
+  {
+    "id": "017",
+    "image": "images/017.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Northwind Clinic, phone. User mistake (not a bug): The phone number was typed as \"abc 12\"; the app refuses it. See eval/fixtures/README.md."
+  },
+  {
+    "id": "018",
+    "image": "images/018.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Pinewood Guesthouse, phone. User mistake (not a bug): The departure date is before the arrival date; the app asks for a later departure. See eval/fixtures/README.md."
+  },
+  {
+    "id": "019",
+    "image": "images/019.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Brightsmile Dental, desktop. Unclear (the screen looks normal): Nothing is wrong on the screen (the 7-day schedule). See eval/fixtures/README.md."
+  },
+  {
+    "id": "020",
+    "image": "images/020.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Pinewood Guesthouse, desktop. Unclear (the screen looks normal): Nothing is wrong on the screen (the home page). See eval/fixtures/README.md."
+  },
+  {
+    "id": "021",
+    "image": "images/021.png",
+    "sentence": "",
+    "author": "",
+    "nonTechnicalAuthor": false,
+    "reference": {
+      "title": {
+        "mustMention": []
+      },
+      "location": {
+        "accept": []
+      },
+      "actualResult": {
+        "mustMention": [],
+        "nullable": false
+      },
+      "priority": "medium",
+      "tags": {
+        "anyOf": []
+      },
+      "expectedResult": null,
+      "stepsToReproduce": null
+    },
+    "notes": "Northwind Clinic, desktop. Unclear (the screen looks normal): Nothing is wrong on the screen (the booking panel, service step). See eval/fixtures/README.md."
   }
 ]
