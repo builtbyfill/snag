@@ -1,15 +1,13 @@
 "use client";
 
-import { CircleAlertIcon, MessageCircleQuestionIcon, RotateCcwIcon } from "lucide-react";
+import { CircleAlertIcon, MessageCircleQuestionIcon } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { retryExtractionAction } from "@/app/actions/tickets";
 import { PriorityBars } from "@/components/priority-bars";
 import { StatusGlyph } from "@/components/status-glyph";
 import { Spinner } from "@/components/ui/spinner";
 import { adminCopy, fillIn } from "@/lib/copy/admin";
 import { cn } from "@/lib/utils";
+import { RetryButton } from "./retry-button";
 import type { CardView } from "./types";
 
 /**
@@ -109,44 +107,7 @@ export function TicketCard({ card }: { card: CardView }) {
         )}
       </Link>
 
-      {failed && <RetryButton ticketId={card.id} />}
+      {failed && <RetryButton ticketId={card.id} className="mt-2.5" />}
     </article>
-  );
-}
-
-/** Puts the ticket back to reading; the thread's 3-second refresh then follows it to the end. */
-function RetryButton({ ticketId }: { ticketId: string }) {
-  const c = adminCopy.card;
-  const router = useRouter();
-  const [retrying, startRetry] = useTransition();
-  const [problem, setProblem] = useState(false);
-
-  return (
-    <span className="relative z-10 mt-2.5 flex flex-wrap items-center gap-2">
-      <button
-        type="button"
-        disabled={retrying}
-        onClick={() => {
-          setProblem(false);
-          startRetry(async () => {
-            try {
-              await retryExtractionAction(ticketId);
-              router.refresh();
-            } catch {
-              setProblem(true);
-            }
-          });
-        }}
-        className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-canvas px-3 text-meta font-medium text-ink transition-colors hover:bg-sunken disabled:opacity-60 pointer-coarse:h-11"
-      >
-        {retrying ? <Spinner className="size-3.5" aria-hidden /> : <RotateCcwIcon className="size-3.5" aria-hidden />}
-        {retrying ? c.retrying : c.retry}
-      </button>
-      {problem && (
-        <span role="alert" className="text-meta text-ink">
-          {c.retryFailed}
-        </span>
-      )}
-    </span>
   );
 }

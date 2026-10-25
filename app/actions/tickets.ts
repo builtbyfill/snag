@@ -7,6 +7,7 @@ import { readReportEnv } from "@/lib/env";
 import { runExtraction } from "@/lib/extraction/run";
 import { createLocalStorage } from "@/lib/storage";
 import { retryExtraction, type RetryResult } from "@/lib/tickets/retry";
+import { updateTicketField, type UpdateResult } from "@/lib/tickets/update";
 
 /**
  * Retry on a failed ticket card. Signed-in only. The ticket turns `pending` at once (the thread
@@ -26,4 +27,10 @@ export async function retryExtractionAction(ticketId: string): Promise<RetryResu
     });
   }
   return result;
+}
+
+/** Saves one editable field from the detail page. Signed-in only; the whitelist lives in updateTicketField. */
+export async function updateTicketFieldAction(ticketId: string, field: string, value: string): Promise<UpdateResult> {
+  await requireSession();
+  return updateTicketField(getDb(), ticketId, field, value);
 }

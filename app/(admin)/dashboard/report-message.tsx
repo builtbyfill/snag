@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SnagMark } from "@/components/snag-mark";
 import { adminCopy, fillIn } from "@/lib/copy/admin";
+import { SystemRow } from "./system-row";
 import { TicketCard } from "./ticket-card";
 import type { CardView, ThreadClient } from "./types";
 
@@ -55,6 +56,9 @@ export function ReportMessage({ card, client }: { card: CardView; client: Thread
         </span>
         <div className="min-w-0 flex-1">
           <TicketCard card={card} />
+          {card.events.map((event) => (
+            <SystemRow key={event.id} text={event.text} at={event.at} />
+          ))}
         </div>
       </div>
     </article>

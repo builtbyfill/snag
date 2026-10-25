@@ -1,9 +1,10 @@
 // What the dashboard reads (spec.md > Chat Surfaces > Dashboard chats). Every function takes the
 // database as an argument, so the DB-backed tests run them against snag_test.
-import { and, asc, count, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Db } from '@/lib/db/client';
-import { attachments, followUps, projects, tickets } from '@/lib/db/schema';
+import { attachments, extractions, followUps, projects, ticketEvents, tickets } from '@/lib/db/schema';
+import { ExtractionOutput } from '@/lib/extraction/schema';
 
 export type ClientsView = 'inbox' | 'done';
 export type StatusTab = 'all' | 'new' | 'in_progress' | 'done';
@@ -42,7 +43,11 @@ export type ThreadTicket = Pick<
 > & {
   attachment: { width: number; height: number } | null;
   followUps: { id: string; body: string; createdAt: Date }[];
+  /** Status and priority changes, oldest first (slice 9). */
+  events: TicketEvent[];
 };
+
+export type TicketEvent = { id: string; field: 'status' | 'priority'; fromValue: string | null; toValue: string | null; createdAt: Date };
 
 /** One client by id, whatever the view; null for an unknown or malformed id. */
 export async function getClient(db: Db, id: string): Promise<{ id: string; name: string; slug: string } | null> {
@@ -59,6 +64,88 @@ export async function getTicketHeading(db: Db, id: string) {
     .from(tickets)
     .where(eq(tickets.id, id));
   return row ?? null;
+}
+
+/** The seven fields the extraction writes and the developer may edit, as the model wrote them. */
+export type AiOriginal = {
+  title: string;
+  location: string;
+  actualResult: string | null;
+  priority: 'low' | 'medium' | 'high';
+  tags: string[];
+  expectedResult: string | null;
+  stepsToReproduce: string[] | null;
+};
+export type EditableKey = keyof AiOriginal;
+const EDITABLE_KEYS: EditableKey[] = ['title', 'location', 'actualResult', 'priority', 'tags', 'expectedResult', 'stepsToReproduce'];
+
+export type TicketDetail = typeof tickets.$inferSelect & {
+  projectName: string;
+  attachment: { width: number; height: number } | null;
+  followUps: { id: string; body: string; createdAt: Date }[];
+  /** What the latest successful extraction wrote, or null when none succeeded. */
+  aiOriginal: AiOriginal | null;
+  /** Fields whose current value differs from the AI original, in field order. */
+  editedFields: EditableKey[];
+  editCount: number;
+};
+
+/** The AI's values from a stored `extractions.parsed`, or null when it isn't a valid output. */
+export function aiOriginalFrom(parsed: unknown): AiOriginal | null {
+  const out = ExtractionOutput.safeParse(parsed);
+  if (!out.success) return null;
+  const { observed, inferred } = out.data;
+  return {
+    title: observed.title,
+    location: observed.location,
+    actualResult: observed.actualResult,
+    priority: observed.priority,
+    tags: observed.tags,
+    expectedResult: inferred.expectedResult?.value ?? null,
+    stepsToReproduce: inferred.stepsToReproduce?.value ?? null,
+  };
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+/** Which editable fields no longer read as the AI wrote them. */
+export function editedFields(ticket: Pick<typeof tickets.$inferSelect, EditableKey>, original: AiOriginal | null): EditableKey[] {
+  if (!original) return [];
+  return EDITABLE_KEYS.filter((key) => !same(ticket[key], original[key]));
+}
+
+/** Everything the ticket detail shows: the whole row, its client, screenshot size and follow-ups. */
+export async function getTicket(db: Db, id: string): Promise<TicketDetail | null> {
+  if (!z.uuid().safeParse(id).success) return null;
+  const [row] = await db
+    .select({ ticket: tickets, projectName: projects.name, width: attachments.width, height: attachments.height })
+    .from(tickets)
+    .innerJoin(projects, eq(projects.id, tickets.projectId))
+    .leftJoin(attachments, eq(attachments.ticketId, tickets.id))
+    .where(eq(tickets.id, id));
+  if (!row) return null;
+  const notes = await db
+    .select({ id: followUps.id, body: followUps.body, createdAt: followUps.createdAt })
+    .from(followUps)
+    .where(eq(followUps.ticketId, id))
+    .orderBy(asc(followUps.createdAt));
+  const [latest] = await db
+    .select({ parsed: extractions.parsed })
+    .from(extractions)
+    .where(and(eq(extractions.ticketId, id), eq(extractions.result, 'succeeded')))
+    .orderBy(desc(extractions.attempt))
+    .limit(1);
+  const aiOriginal = latest ? aiOriginalFrom(latest.parsed) : null;
+  const edited = editedFields(row.ticket, aiOriginal);
+  return {
+    ...row.ticket,
+    projectName: row.projectName,
+    attachment: row.width === null || row.height === null ? null : { width: row.width, height: row.height },
+    followUps: notes,
+    aiOriginal,
+    editedFields: edited,
+    editCount: edited.length,
+  };
 }
 
 /** Whether any project exists: tells "no projects yet" from an empty Inbox. */
@@ -152,9 +239,16 @@ export async function listThread(db: Db, projectId: string, status: StatusTab): 
     .where(inArray(followUps.ticketId, rows.map((r) => r.id)))
     .orderBy(asc(followUps.createdAt));
 
+  const changes = await db
+    .select({ id: ticketEvents.id, ticketId: ticketEvents.ticketId, field: ticketEvents.field, fromValue: ticketEvents.fromValue, toValue: ticketEvents.toValue, createdAt: ticketEvents.createdAt })
+    .from(ticketEvents)
+    .where(inArray(ticketEvents.ticketId, rows.map((r) => r.id)))
+    .orderBy(asc(ticketEvents.createdAt));
+
   return rows.map(({ width, height, ...ticket }) => ({
     ...ticket,
     attachment: width === null || height === null ? null : { width, height },
     followUps: notes.filter((n) => n.ticketId === ticket.id).map((n) => ({ id: n.id, body: n.body, createdAt: n.createdAt })),
+    events: changes.filter((e) => e.ticketId === ticket.id).map((e) => ({ id: e.id, field: e.field, fromValue: e.fromValue, toValue: e.toValue, createdAt: e.createdAt })),
   }));
 }

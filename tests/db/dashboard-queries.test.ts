@@ -141,3 +141,20 @@ describe('getTicketHeading', () => {
     expect(await getTicketHeading(db(), 'nope')).toBeNull();
   });
 });
+
+describe('listThread: change rows', () => {
+  it('attaches each ticket\'s status and priority changes, oldest first', async () => {
+    const { ticketEvents } = await import('@/lib/db/schema');
+    await db().insert(ticketEvents).values([
+      { ticketId: ids['clinic-mid'], field: 'status', fromValue: 'new', toValue: 'in_progress', createdAt: at('2026-10-16T12:00:00Z') },
+      { ticketId: ids['clinic-mid'], field: 'priority', fromValue: null, toValue: 'high', createdAt: at('2026-10-16T11:30:00Z') },
+    ]);
+    const thread = await listThread(db(), clinic, 'all');
+    const mid = thread.find((t) => t.id === ids['clinic-mid'])!;
+    expect(mid.events.map((e) => [e.field, e.fromValue, e.toValue])).toEqual([
+      ['priority', null, 'high'],
+      ['status', 'new', 'in_progress'],
+    ]);
+    expect(thread.find((t) => t.id === ids['clinic-new'])!.events).toEqual([]);
+  });
+});

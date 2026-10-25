@@ -108,3 +108,18 @@ export const followUps = pgTable('follow_ups', {
   index('follow_ups_ticket_created_idx').on(t.ticketId, t.createdAt),
   index('follow_ups_ip_hash_created_idx').on(t.reporterIpHash, t.createdAt),
 ]);
+
+// A status or priority change on a ticket, for the thread's change rows (Filip, 2026-10-18).
+// Written only by updateTicketField; replaces the deferred status-change-time columns.
+export const ticketEventField = pgEnum('ticket_event_field', ['status', 'priority']);
+
+export const ticketEvents = pgTable('ticket_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ticketId: uuid('ticket_id').notNull().references(() => tickets.id, { onDelete: 'cascade' }),
+  field: ticketEventField('field').notNull(),
+  fromValue: text('from_value'),
+  toValue: text('to_value'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('ticket_events_ticket_created_idx').on(t.ticketId, t.createdAt),
+]);

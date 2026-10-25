@@ -4,6 +4,7 @@ import { ArrowLeftIcon, CheckIcon, LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { copyText } from "@/lib/clipboard";
 import { adminCopy, fillIn } from "@/lib/copy/admin";
 import type { StatusTab } from "@/lib/tickets/queries";
 import { cn } from "@/lib/utils";
@@ -63,12 +64,12 @@ export function Thread({
     }, FLASH_MS);
   };
   const copyMarkdown = (text: string) =>
-    navigator.clipboard.writeText(text).then(
+    copyText(text).then(
       () => say(c.markdownCopied, true),
       () => say(c.copyFailed, true),
     );
   const copyLink = (url: string) =>
-    navigator.clipboard.writeText(url).then(
+    copyText(url).then(
       () => say(c.linkCopied, false, true),
       () => say(c.copyFailed, true),
     );

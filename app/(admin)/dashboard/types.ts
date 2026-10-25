@@ -39,6 +39,8 @@ export type CardView = {
   /** width/height: the size it shows at (inside 280 × 240), known before it loads. */
   thumb: { src: string; srcSet: string; width: number; height: number } | null;
   followUps: { id: string; body: string; at: string }[];
+  /** Status and priority changes, already worded ("Status changed to In progress"). */
+  events: { id: string; text: string; at: string }[];
   markdown: string;
   href: string;
 };

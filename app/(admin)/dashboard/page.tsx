@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireSession } from "@/lib/auth/session";
-import { adminCopy } from "@/lib/copy/admin";
+import { adminCopy, fillIn } from "@/lib/copy/admin";
 import { getDb } from "@/lib/db/client";
 import { readAuthEnv } from "@/lib/env";
 import { ticketToMarkdown } from "@/lib/tickets/markdown";
@@ -26,6 +26,14 @@ function thumbSize({ width, height }: { width: number; height: number }) {
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
+/** "Status changed to In progress", "Priority set to High", "Priority cleared". */
+function eventText(e: ThreadTicket["events"][number]): string {
+  const c = adminCopy.card;
+  if (e.field === "status") return fillIn(adminCopy.thread.statusChanged, { value: c.status[e.toValue as keyof typeof c.status] ?? e.toValue ?? "" });
+  if (e.toValue === null) return adminCopy.thread.priorityCleared;
+  return fillIn(adminCopy.thread.priorityChanged, { value: c.priority[e.toValue as keyof typeof c.priority] ?? e.toValue });
+}
+
 function toCard(t: ThreadTicket, q: DashboardQuery, now: Date): CardView {
   const image = `/dashboard/images/${t.id}`;
   return {
@@ -44,6 +52,7 @@ function toCard(t: ThreadTicket, q: DashboardQuery, now: Date): CardView {
     sentAt: dateTime(t.createdAt, now),
     thumb: t.attachment && { src: `${image}?w=320`, srcSet: `${image}?w=320 320w, ${image}?w=640 640w`, ...thumbSize(t.attachment) },
     followUps: t.followUps.map((f) => ({ id: f.id, body: f.body, at: dateTime(f.createdAt, now) })),
+    events: t.events.map((e) => ({ id: e.id, text: eventText(e), at: dateTime(e.createdAt, now) })),
     markdown: ticketToMarkdown(t),
     href: dashboardHref(`/dashboard/tickets/${t.id}`, q),
   };

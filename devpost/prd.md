@@ -242,11 +242,11 @@ Source: `scope.md > The Core Loop`, `scope.md > Inspiration & Identity`. Layout 
 Source: `scope.md > The Unique Kernel`, `scope.md > Inspiration & Identity` (Sentry).
 
 - Left column shows the source: screenshot (click opens the full-size dialog, Escape closes), "Client wrote" heading, the sentence verbatim in `body` size, received time and project in `meta`.
-- Right column, observed fields: each is a `Field` with label, borderless until focus, editable in place. Tags is a comma-separated input in the PoC.
-- "Suggested by AI" group header with the line "Based on the screenshot and the client's sentence. Check before you trust." Each inferred field shows its evidence as "Based on: …" in `meta`, or the empty text "Not enough in the screenshot to tell." with an **Add** button.
-- Saving: leaving an edited field saves it. "Saved" appears in `meta` next to the label for two seconds. On failure: toast "Couldn't save. Try again." and the field keeps the edited value.
-- Status select: New / In progress / Done. Changing it saves immediately with the same inline confirmation. Done tickets stay in the thread, muted.
-- Priority select: Low / Medium / High, monochrome.
+- Right column, under a sticky action bar (Status, Priority, **Copy as Markdown**, and **Retry** when failed): the "From the screenshot" group (Where it happened, What's wrong, Tags) with the line "What the screenshot and the sentence show. Click a field to change it." Every field reads as text at rest, with a hover border and a pencil (always visible on touch screens); a click turns it into a field. Steps to reproduce read as a numbered list, one step per line while editing. Helper text ("Separate tags with commas", "One step per line") shows only while editing. Tags is a comma-separated input in the PoC.
+- "Suggested by AI" group header with the line "Based on the screenshot and the client's sentence. Check before you trust." Each inferred field shows its evidence as "Based on: …" in `meta`, wrapped in full and never clipped, or the empty text "Not enough in the screenshot to tell." with an **Add** button.
+- **Edited** (Filip, 2026-10-22): a field whose value no longer reads as the latest successful extraction wrote it carries a small "Edited" mark next to its label; hovering or focusing the field shows "AI wrote: …" ("AI left this empty." when it wrote nothing). The Details line counts them ("2 fields edited"), so real use can be reported as "accepted with ≤1 edit" the way the eval is.
+- Saving: leaving an edited field saves it. "Saved" appears in `meta` next to the label for two seconds. On failure the field keeps the edited value and "Couldn't save. Try again." sits under it.
+- Status: New / In progress / Done, and Priority: No priority / Low / Medium / High, as dark menus in the dashboard's own tokens with the glyph beside each option (not the operating system's list). Changing one saves immediately with the same inline confirmation. Done tickets stay in the thread, muted.
 - **Copy as Markdown** (with `Kbd` c): copies the ticket; toast "Copied as Markdown". Format, GitHub-Issues compatible, decided by Filip:
 
   ```markdown
@@ -264,7 +264,7 @@ Source: `scope.md > The Unique Kernel`, `scope.md > Inspiration & Identity` (Sen
 
   Empty fields are omitted entirely, never written as "null" or as a placeholder. One `> Later:` line per follow-up, oldest first, none when there are none. Inferred fields carry the `_(suggested)_` marker. Evidence lines, confidence, status, and language are not included.
 - Keyboard in detail: `c` copies Markdown, Esc returns to the chat. Nothing else for the hackathon.
-- Meta line under the title: extraction state badge, "Confidence 0.72", language code, and **Ask client** badge when applicable with the hint on hover or focus: "Not enough detail to act on. Ask the client one question."
+- Meta line under the title: status, priority, "Confidence 0.72" (with "· low" under 0.6), "Couldn't read the screenshot" in red when failed, and the **Ask client** badge when applicable with the hint on hover or focus: "Not enough detail to act on. Ask the client one question." Under it a collapsed **Details** line holds the extraction state, the language and the edit count.
 - **Pending state:** right column shows field labels with skeleton bars and the line "Reading screenshot…" with a spinner. Left column is complete. Actions available: Status and Copy as Markdown (Markdown then contains only the heading, with the client's sentence as the title, and the `> Client:` line).
 - **Failed state:** right column shows a `danger` panel "Couldn't read this screenshot" with a collapsed "Details" disclosure holding the raw error, and the **Retry extraction** button. All fields are editable so Filip can write the ticket by hand if he prefers. Pressing Retry: button reads "Retrying…" with a spinner, the ticket returns to the pending state, then resolves to extracted (toast "Extraction finished") or failed again (toast "Extraction failed again"). Retry is in scope with the one-hour build cap recorded in `scope.md > If We Lose Two Days`.
 

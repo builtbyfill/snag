@@ -81,3 +81,17 @@ describe('retryExtractionAction', () => {
     await expect(retryExtractionAction('5eed0003-0000-4000-8000-000000000003')).rejects.toThrow('database reached');
   });
 });
+
+describe('updateTicketFieldAction', () => {
+  it('redirects to /login without a session, before touching the database', async () => {
+    const { updateTicketFieldAction } = await import('@/app/actions/tickets');
+    const error = await updateTicketFieldAction('5eed0001-0000-4000-8000-000000000001', 'title', 'x').catch((e: unknown) => e);
+    expect(isRedirectToLogin(error)).toBe(true);
+  });
+
+  it('goes on to the database with a valid session', async () => {
+    const { updateTicketFieldAction } = await import('@/app/actions/tickets');
+    cookie.value = createSessionToken(env);
+    await expect(updateTicketFieldAction('5eed0001-0000-4000-8000-000000000001', 'title', 'x')).rejects.toThrow('database reached');
+  });
+});
