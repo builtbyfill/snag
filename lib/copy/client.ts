@@ -22,6 +22,8 @@ export const clientCopy = {
   list: {
     title: 'Your reports',
     newReport: 'New report',
+    account: 'Client', // under the project name in the sidebar's account row
+    settings: 'Settings', // opens the help and contact on a desktop
     close: 'Close',
   },
   welcome: {
@@ -79,17 +81,16 @@ export const clientCopy = {
     openScreenshot: 'Open your screenshot full size',
     closeScreenshot: 'Close',
     contactLine: 'Questions about this report? Email {email}',
-    panel: {
-      title: 'What happens next',
-      lines: [
-        'The team reads your report, usually the same day.',
-        'When someone starts on it, the status here changes to In progress.',
-        'When it is fixed, it changes to Done. Check back here on this device.',
-      ],
+    // One short line under each timeline step, in place of a "what happens next" block.
+    stepLines: {
+      new: 'The team reads it, usually the same day.',
+      in_progress: 'Someone has started on it.',
+      done: 'Fixed. If it still fails, send a new report.',
     },
   },
   help: {
     title: 'How to take a screenshot',
+    link: 'How do I take a screenshot?', // beside the composer on a desktop; opens the steps
     // One step per entry; step 2 has a line per device.
     steps: [
       ['Open the screen that shows the problem.'],

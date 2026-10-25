@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlertIcon, PlusIcon } from "lucide-react";
+import { CircleAlertIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { addFollowUpAction } from "@/app/actions/report";
 import { Button } from "@/components/ui/button";
@@ -11,26 +11,27 @@ import type { FollowUp } from "@/lib/reports/history";
 import type { ReportErrorCode } from "@/lib/reports/validate";
 
 /**
- * Under a report in the feed: "Add to this report" opens a small field for text only (a new
- * screenshot belongs in a new report, which the page's composer sends). Focus stays in the field
- * after sending, as in any messaging app.
+ * Under a report in the feed, once "Add to this report" (in the feed item) opens it: a small
+ * field for text only (a new screenshot belongs in a new report, which the page's composer
+ * sends). Focus stays in the field after sending, as in any messaging app.
  */
 export function FollowUpComposer({
   copy,
   slug,
   ticketId,
+  open,
   onAdded,
 }: {
   copy: ClientCopy;
   slug: string;
   ticketId: string;
+  open: boolean;
   onAdded: (followUp: FollowUp) => void;
 }) {
   const c = copy.followUp;
   const fieldId = useId();
   const problemId = useId();
   const fieldRef = useRef<HTMLTextAreaElement>(null);
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [problem, setProblem] = useState<ReportErrorCode | null>(null);
   const [sending, startSending] = useTransition();
@@ -39,18 +40,7 @@ export function FollowUpComposer({
     if (open) fieldRef.current?.focus();
   }, [open]);
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="mt-3 flex min-h-8 items-center gap-1.5 rounded-md text-meta font-medium text-ink-secondary transition-colors duration-(--motion-fast) hover:text-ink pointer-coarse:min-h-11"
-      >
-        <PlusIcon className="size-3.5" aria-hidden />
-        {c.label}
-      </button>
-    );
-  }
+  if (!open) return null;
 
   function send() {
     if (sending) return;

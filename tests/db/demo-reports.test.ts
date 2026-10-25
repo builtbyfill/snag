@@ -27,6 +27,7 @@ describe('listDemoReports', () => {
       status: 'done',
       sentAt: T1.toISOString(),
       thumb: `/r/DemoSlugDemoSlugDemoS/images/${a.id}?w=640`,
+      full: `/r/DemoSlugDemoSlugDemoS/images/${a.id}`,
       followUps: [{ body: 'Still broken.', sentAt: T2.toISOString() }],
     });
     expect(reports?.[1]).toMatchObject({ status: 'new', followUps: [] });

@@ -13,7 +13,8 @@ export type DemoReport = HistoryEntry & { status: 'new' | 'in_progress' | 'done'
 /** The width the client feed asks the demo image route for (lib/tickets/image.ts WIDTHS). */
 export const DEMO_THUMB_WIDTH = 640;
 
-export const demoImageUrl = (slug: string, ticketId: string) => `/r/${slug}/images/${ticketId}?w=${DEMO_THUMB_WIDTH}`;
+export const demoImageUrl = (slug: string, ticketId: string, width: number | null = DEMO_THUMB_WIDTH) =>
+  `/r/${slug}/images/${ticketId}${width === null ? '' : `?w=${width}`}`;
 
 /** Every report of a demo project, oldest first, as feed entries; null for a non-demo or unknown link. */
 export async function listDemoReports(db: Db, slug: string): Promise<DemoReport[] | null> {
@@ -36,6 +37,7 @@ export async function listDemoReports(db: Db, slug: string): Promise<DemoReport[
     ticketId: t.id,
     sentence: t.sentence,
     thumb: demoImageUrl(slug, t.id),
+    full: demoImageUrl(slug, t.id, null),
     sentAt: t.createdAt.toISOString(),
     status: t.status,
     followUps: notes.filter((n) => n.ticketId === t.id).map((n) => ({ id: n.id, body: n.body, sentAt: n.createdAt.toISOString() })),

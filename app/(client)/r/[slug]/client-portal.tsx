@@ -32,9 +32,9 @@ import { Composer, type Chosen, type Problem } from "./composer";
 import { FeedItem } from "./feed-item";
 import { HelpBlock } from "./help-block";
 import { HowItWorks } from "./how-it-works";
-import { NextSteps } from "./next-steps";
-import { ReportDetails } from "./report-details";
+import { ReportDetails, StatusStrip } from "./report-details";
 import { ReportList } from "./report-list";
+import { SidebarFooter } from "./sidebar-footer";
 import { WelcomeBlock, replyLine } from "./welcome-block";
 
 /** The unsent draft, under the project's own prefix like the history ("snag:<slug>"). */
@@ -44,11 +44,13 @@ const OFFICE_REFRESH_MS = 60_000;
 
 /**
  * The client's page (Filip, 2026-10-25): a bar on top, then three panes locked to the viewport.
- * Left (300px): this feed's reports grouped by status, with Help pinned below. Middle: the
- * welcome card, then every report as one chat, with the composer pinned to the bottom once there
- * is a report (under the card before that). Right (320px): the selected report's status timeline
- * and what happens next, or how it works while nothing is selected. Between 768 and 1023px the
- * right pane moves under the feed and the list opens from the bar; on phones only the chat shows.
+ * Left (300px): this feed's reports grouped by status, in the dashboard's row style. Middle: a
+ * 640px column with the welcome card, then every report as one chat, with the composer pinned
+ * to the bottom once there is a report (under the card before that). Right (320px, from 1280px):
+ * the selected report's status timeline, or how it works while nothing is selected; between 1024
+ * and 1279px a one-line status strip above the chat instead. Between 768 and 1023px the right
+ * pane's content moves under the feed and the list opens from the bar; on phones only the chat
+ * shows, with the help and contact in the list sheet.
  *
  * The feed holds the reports sent from this device (localStorage, "snag:<slug>"). A demo project
  * adds every report it has, so judges see a full feed; a real project never does.
@@ -331,12 +333,7 @@ export function ClientPortal({
   const help = <HelpBlock copy={copy} {...who} />;
   const list = <ReportList history={feed} statuses={statuses} selectedId={selected?.ticketId ?? null} copy={copy} onSelect={select} />;
   const sidePanel = selected ? (
-    <ReportDetails
-      entry={selected}
-      status={statuses[selected.ticketId] ?? "new"}
-      copy={copy}
-      panel={<NextSteps copy={copy} developerEmail={developerEmail} />}
-    />
+    <ReportDetails entry={selected} status={statuses[selected.ticketId] ?? "new"} copy={copy} contactEmail={developerEmail} />
   ) : (
     <HowItWorks copy={copy} {...who} />
   );
@@ -366,7 +363,9 @@ export function ClientPortal({
       attachRef={attachRef}
       sentenceRef={sentenceRef}
       // Pinned to the bottom of the pane once the feed has messages; under the welcome card before.
-      className={hasFeed ? "shrink-0 md:px-8 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[720px]" : "border-t-0 px-0 pt-0 pb-0 md:px-0"}
+      // Its contents sit in the same 640px column as the cards, flush with them.
+      className={hasFeed ? "shrink-0 md:px-8" : "border-t-0 px-0 pt-0 pb-0 md:px-0"}
+      contentClassName={hasFeed ? "mx-auto w-full max-w-[640px]" : undefined}
     />
   );
 
@@ -379,7 +378,7 @@ export function ClientPortal({
 
       {/* The bar: who this page belongs to and when to expect a reply. */}
       <header data-chrome className="shrink-0 border-b border-chrome-line bg-chrome text-chrome-fg">
-        <div className="flex h-[51px] w-full items-center gap-3 px-4">
+        <div className="flex h-[51px] w-full items-center gap-3 px-4 lg:h-[52px] lg:gap-2.5">
           {hasFeed && (
             <Sheet open={listOpen} onOpenChange={setListOpen}>
               <SheetTrigger
@@ -414,7 +413,7 @@ export function ClientPortal({
               </SheetContent>
             </Sheet>
           )}
-          <SnagMark className="size-7 shrink-0 text-marker [--snag-mark-cut:var(--chrome)]" />
+          <SnagMark className="size-7 shrink-0 text-marker [--snag-mark-cut:var(--chrome)] lg:size-6" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-body leading-tight font-semibold">{projectName}</p>
             <p className="mt-0.5 flex min-w-0 items-center gap-x-3 text-meta text-chrome-fg-muted">
@@ -428,25 +427,26 @@ export function ClientPortal({
         </div>
       </header>
 
-      {/* Three panes from 1024px; below that the chat fills the page (the right pane's content under the feed from 768px). */}
-      <div className="grid min-h-0 w-full flex-1 grid-rows-[minmax(0,1fr)] bg-canvas lg:grid-cols-[300px_minmax(0,1fr)_320px]">
+      {/* Two panes from 1024px, three from 1280px; below that the chat fills the page (the right pane's content under the feed from 768px). */}
+      <div className="grid min-h-0 w-full flex-1 grid-rows-[minmax(0,1fr)] bg-canvas lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px]">
         <aside data-list className="hidden min-h-0 flex-col border-r border-line bg-pane lg:flex">
-          {hasFeed ? (
-            <>
-              <div className="min-h-0 flex-1 overflow-y-auto">{list}</div>
-              {/* With reports, the list leads and the help is pinned at the bottom. */}
-              <div className="shrink-0 border-t border-line p-4">{help}</div>
-            </>
-          ) : (
-            // No reports yet: the help is what the pane is for, so it comes first.
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">{help}</div>
-          )}
+          <div className="min-h-0 flex-1 overflow-y-auto">{list}</div>
+          {/* Bottom-left, like the dashboard's nav: the account row and Settings (help and contact). */}
+          <SidebarFooter copy={copy} {...who} />
         </aside>
 
         {/* The chat: the welcome card, then every report, oldest first; the composer at the bottom. */}
         <main className="flex min-h-0 min-w-0 flex-col">
+          {/* 1024 to 1279px: the selected report's status in one line, where the right pane would be. */}
+          {selected && (
+            <div className="hidden shrink-0 border-b border-line bg-pane-soft px-8 py-2 lg:block xl:hidden">
+              <div className="mx-auto w-full max-w-[640px]">
+                <StatusStrip entry={selected} status={statuses[selected.ticketId] ?? "new"} copy={copy} />
+              </div>
+            </div>
+          )}
           <div ref={feedRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
-            <div className="mx-auto flex w-full max-w-[720px] flex-col gap-6">
+            <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6">
               <WelcomeBlock copy={copy} developerName={developerName} inProgress={inProgress} />
               {!hasFeed && composer}
               {hasFeed && (
@@ -474,8 +474,8 @@ export function ClientPortal({
           {hasFeed && composer}
         </main>
 
-        {/* The details pane: the selected report's status, or how it works. Phones carry the status rows in the feed instead. */}
-        <aside aria-label={copy.report.progressLabel} className="hidden min-h-0 overflow-y-auto border-l border-line bg-pane-soft p-4 lg:block">
+        {/* The details pane (from 1280px): the selected report's status, or how it works. Phones carry the status rows in the feed instead. */}
+        <aside aria-label={copy.report.progressLabel} className="hidden min-h-0 overflow-y-auto border-l border-line bg-pane-soft p-4 xl:block">
           {sidePanel}
         </aside>
       </div>

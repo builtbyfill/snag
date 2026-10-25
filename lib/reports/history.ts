@@ -18,7 +18,15 @@ const entrySchema = z.object({
 });
 
 export type FollowUp = { id: string; body: string; sentAt: string };
-export type HistoryEntry = { ticketId: string; sentence: string; thumb: string; sentAt: string; followUps?: FollowUp[] };
+export type HistoryEntry = {
+  ticketId: string;
+  sentence: string;
+  thumb: string;
+  sentAt: string;
+  followUps?: FollowUp[];
+  /** A full-size image on the server (demo reports only); device reports keep theirs in IndexedDB. */
+  full?: string;
+};
 
 /** This project's history: "snag:<slug>". Nothing else under "snag:" or any other key is read. */
 export function historyKey(slug: string): string {

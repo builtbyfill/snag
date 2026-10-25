@@ -35,12 +35,12 @@ export function ReportList({
   const groups = groupByStatus(history, statuses);
 
   return (
-    <nav aria-label={copy.list.title} className="flex flex-col gap-4 p-3">
+    <nav aria-label={copy.list.title} className="flex flex-col gap-3 p-2">
       {/* A plain bordered button: no selection bar. Focus is the global 2px focus-visible ring. */}
       <button
         type="button"
         onClick={() => onSelect(null)}
-        className="flex h-9 items-center gap-2 rounded-md border border-line-strong bg-surface px-3 text-body font-medium text-ink transition-colors duration-(--motion-fast) hover:bg-hover active:translate-y-px pointer-coarse:h-11"
+        className="flex h-9 items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-body font-medium text-ink transition-colors duration-(--motion-fast) hover:bg-hover active:translate-y-px pointer-coarse:h-11"
       >
         <PlusIcon className="size-4" aria-hidden />
         {copy.list.newReport}
@@ -79,7 +79,7 @@ function Group({
   if (entries.length === 0) return null;
   return (
     <section>
-      <h2 className="flex items-center justify-between px-2 pb-1.5 text-label text-ink-muted uppercase">
+      <h2 className="flex items-center justify-between px-2.5 pb-1 text-meta font-medium text-ink-muted">
         <span>{label}</span>
         <span className="tabular-nums">{entries.length}</span>
       </h2>
@@ -94,12 +94,12 @@ function Group({
                 onClick={() => onSelect(entry.ticketId)}
                 aria-current={selected ? "true" : undefined}
                 className={cn(
-                  "relative flex min-h-14 w-full items-center gap-3 rounded-md px-2 py-1.5 text-left",
+                  "relative flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left",
                   "transition-colors duration-(--motion-fast) hover:bg-hover",
                   selected && current,
                 )}
               >
-                <DateTile iso={entry.sentAt} />
+                <DateTile iso={entry.sentAt} small className="mt-0.5" />
                 <span className="min-w-0 flex-1">
                   <span className={cn("line-clamp-2 text-body", muted ? "text-ink-muted" : "font-medium text-ink")}>
                     {entry.sentence}

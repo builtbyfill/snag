@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ClientCopy } from "@/lib/copy/client";
 import type { ReportErrorCode } from "@/lib/reports/validate";
 import { cn } from "@/lib/utils";
+import { HelpPopover } from "./help-popover";
 
 export type Chosen = { file: File; thumb: string; url: string; preview: Blob };
 export type Problem = { field: "screenshot" | "sentence" | "form"; code: ReportErrorCode };
@@ -35,6 +36,7 @@ export function Composer({
   attachRef,
   sentenceRef,
   className,
+  contentClassName,
 }: {
   copy: ClientCopy;
   chosen: Chosen | null;
@@ -53,6 +55,8 @@ export function Composer({
   sentenceRef: RefObject<HTMLTextAreaElement | null>;
   /** Placement from the page (pinned on phones, in the flow on desktop). */
   className?: string;
+  /** The column the contents sit in (the page's 640px column on a desktop). */
+  contentClassName?: string;
 }) {
   const c = copy.composer;
   const fieldId = useId();
@@ -70,7 +74,7 @@ export function Composer({
       aria-busy={sending}
       aria-label={copy.list.newReport}
       className={cn(
-        "flex flex-col gap-2 border-t border-line bg-canvas px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-10",
+        "border-t border-line bg-canvas px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-10",
         className,
       )}
       onSubmit={(event) => {
@@ -78,6 +82,7 @@ export function Composer({
         onSend();
       }}
     >
+      <div className={cn("flex flex-col gap-2", contentClassName)}>
       {problem && (
         <p id={problemId} role="alert" className="flex items-start gap-2 text-meta font-medium text-ink">
           <CircleAlertIcon className="mt-px size-4 shrink-0" aria-hidden />
@@ -192,9 +197,14 @@ export function Composer({
         </Button>
       </div>
 
-      <p aria-live="polite" className="text-meta text-ink-muted">
-        {sending && slow ? c.slow : c.reassurance}
-      </p>
+      <div className="flex items-center justify-between gap-3 text-meta text-ink-muted">
+        {/* On a desktop the right pane already says what happens next, so only the slow note shows there. */}
+        <p aria-live="polite" className={cn(!(sending && slow) && "lg:hidden")}>
+          {sending && slow ? c.slow : c.reassurance}
+        </p>
+        <HelpPopover copy={copy} className="hidden lg:inline-flex" />
+      </div>
+      </div>
     </form>
   );
 }

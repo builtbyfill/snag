@@ -1,6 +1,5 @@
 import { CheckIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import type { TicketStatus } from "@/components/status-glyph";
+import { StatusGlyph, type TicketStatus } from "@/components/status-glyph";
 import type { ClientCopy } from "@/lib/copy/client";
 import type { HistoryEntry } from "@/lib/reports/history";
 import { formatSentAt } from "@/lib/reports/sent-at";
@@ -9,29 +8,29 @@ import { cn } from "@/lib/utils";
 const STEPS: TicketStatus[] = ["new", "in_progress", "done"];
 type StepKind = "completed" | "current" | "future";
 
+/** Passed steps are completed; the reached one is current, except Done, which is an ending. */
+const stepKind = (i: number, reached: number): StepKind =>
+  i < reached || (i === reached && STEPS[i] === "done") ? "completed" : i === reached ? "current" : "future";
+
 /**
- * The details pane for the selected report (wide screens): where it stands in words, the status
- * timeline, what happens next and contact. On phones each report in the feed carries its own
- * status rows, so this pane is not shown there.
+ * The details pane for the selected report (from 1280px): where it stands in words, then the
+ * timeline with a timestamp and one short line under each step, then one contact line.
  */
 export function ReportDetails({
   entry,
   status,
   copy,
-  panel,
+  contactEmail,
 }: {
   entry: HistoryEntry;
   status: TicketStatus;
   copy: ClientCopy;
-  /** What happens next, and contact. */
-  panel: ReactNode;
+  contactEmail: string | null;
 }) {
   const reached = STEPS.indexOf(status);
   // Only the time the report was sent is known; the other steps show "—" until the server records them.
   const times: Partial<Record<TicketStatus, string>> = { new: formatSentAt(entry.sentAt) };
-  // Passed steps are completed; the reached one is current, except Done, which is an ending.
-  const kind = (i: number): StepKind =>
-    i < reached || (i === reached && STEPS[i] === "done") ? "completed" : i === reached ? "current" : "future";
+  const [before, after = ""] = copy.report.contactLine.split("{email}");
 
   return (
     <div className="space-y-5">
@@ -42,8 +41,8 @@ export function ReportDetails({
 
       <ol aria-label={copy.report.progressLabel} className="flex flex-col">
         {STEPS.map((step, i) => {
-          const k = kind(i);
-          const next = i < STEPS.length - 1 ? kind(i + 1) : null;
+          const k = stepKind(i, reached);
+          const next = i < STEPS.length - 1 ? stepKind(i + 1, reached) : null;
           return (
             <li key={step} aria-current={k === "current" ? "step" : undefined} className="relative flex gap-3 pb-5 text-meta last:pb-0">
               {/* Connector to the next step: solid up to where the report is, dashed after. */}
@@ -57,22 +56,60 @@ export function ReportDetails({
                 />
               )}
               <Marker kind={k} />
-              <span className={cn("min-w-24 pt-px", k === "future" ? "text-ink-muted" : k === "current" ? "font-semibold text-ink" : "text-ink")}>
-                {copy.status[step]}
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline gap-3">
+                  <span className={cn("pt-px", k === "future" ? "text-ink-muted" : k === "current" ? "font-semibold text-ink" : "text-ink")}>
+                    {copy.status[step]}
+                  </span>
+                  {times[step] ? (
+                    <time dateTime={entry.sentAt} className="pt-px text-ink-muted tabular-nums">
+                      {times[step]}
+                    </time>
+                  ) : (
+                    <span className="pt-px text-ink-muted">—</span>
+                  )}
+                </span>
+                <span className={cn("mt-0.5 block", k === "future" ? "text-ink-muted" : "text-ink-secondary")}>{copy.report.stepLines[step]}</span>
               </span>
-              {times[step] ? (
-                <time dateTime={entry.sentAt} className="pt-px text-ink-muted tabular-nums">
-                  {times[step]}
-                </time>
-              ) : (
-                <span className="pt-px text-ink-muted">—</span>
-              )}
             </li>
           );
         })}
       </ol>
 
-      {panel}
+      {contactEmail && (
+        <p className="text-meta text-ink-secondary">
+          {before}
+          <a href={`mailto:${contactEmail}`} className="font-medium text-ink underline decoration-line-strong underline-offset-4 hover:decoration-ink">
+            {contactEmail}
+          </a>
+          {after}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The same facts in one line, for 1024 to 1279px where there is no room for the pane: the
+ * headline, then the three steps with the sent time on Received.
+ */
+export function StatusStrip({ entry, status, copy }: { entry: HistoryEntry; status: TicketStatus; copy: ClientCopy }) {
+  const reached = STEPS.indexOf(status);
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-meta">
+      <span className="font-semibold text-ink">{copy.report.headline[status]}</span>
+      <ol aria-label={copy.report.progressLabel} className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        {STEPS.map((step, i) => {
+          const k = stepKind(i, reached);
+          return (
+            <li key={step} aria-current={k === "current" ? "step" : undefined} className={cn("flex items-center gap-1.5", k === "future" ? "text-ink-muted" : "text-ink")}>
+              <StatusGlyph status={step} className={cn("size-3.5", k === "future" && "opacity-50")} />
+              <span className={k === "current" ? "font-medium" : undefined}>{copy.status[step]}</span>
+              {step === "new" && <span className="text-ink-muted tabular-nums">{formatSentAt(entry.sentAt)}</span>}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

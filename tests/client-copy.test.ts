@@ -45,8 +45,9 @@ describe('client page copy (English only, Filip 2026-10-17)', () => {
     expect(clientCopy.report.announce).toMatch(/\S/);
   });
 
-  it('explains what happens next in three lines beside a report', () => {
-    expect(clientCopy.report.panel.lines).toHaveLength(3);
+  it('has one short line under each timeline step', () => {
+    for (const status of ['new', 'in_progress', 'done'] as const) expect(clientCopy.report.stepLines[status], status).toMatch(/\S/);
+    expect(clientCopy.help.link).toMatch(/\?$/);
   });
 
   it('explains how to take a screenshot in three steps, with a line per device in step 2', () => {
