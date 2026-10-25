@@ -44,11 +44,17 @@ describe('updateTicketField: text fields', () => {
     expect((await read()).location).toBeNull();
   });
 
-  it('keeps evidence when an inferred value is edited, and drops it when the value is cleared', async () => {
+  it('drops the evidence once an inferred value is edited or cleared, so it is no longer "suggested"', async () => {
     await update('expectedResult', 'Content shows');
-    expect(await read()).toMatchObject({ expectedResult: 'Content shows', expectedResultEvidence: 'The header says Content.' });
+    expect(await read()).toMatchObject({ expectedResult: 'Content shows', expectedResultEvidence: null });
     await update('expectedResult', '');
     expect(await read()).toMatchObject({ expectedResult: null, expectedResultEvidence: null });
+  });
+
+  it('keeps the evidence when the inferred value is saved unchanged', async () => {
+    const before = await read();
+    await update('expectedResult', before.expectedResult ?? '');
+    expect(await read()).toMatchObject({ expectedResult: before.expectedResult, expectedResultEvidence: before.expectedResultEvidence });
   });
 
   it('a hand-typed inferred field has no evidence', async () => {

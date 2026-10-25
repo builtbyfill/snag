@@ -55,9 +55,8 @@ describe('client page copy (English only, Filip 2026-10-17)', () => {
     expect(clientCopy.report.sentOn).toContain('{date}');
   });
 
-  it('names the statuses a client can see and the two groups', () => {
+  it('names the statuses a client can see', () => {
     expect(clientCopy.status).toEqual({ new: 'Received', in_progress: 'In progress', done: 'Done' });
-    expect(clientCopy.list.groups).toEqual({ open: 'In progress', done: 'Done' });
   });
 
   it('fills the contact note from the developer', () => {

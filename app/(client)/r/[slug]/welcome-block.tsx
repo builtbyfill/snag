@@ -28,7 +28,7 @@ export function WelcomeBlock({
   return (
     <section aria-labelledby="intro-title" className="rounded-xl border border-line-medium bg-surface p-4">
       <div className="flex items-start gap-3">
-        <SnagMark className="size-8 shrink-0 text-ink [--snag-mark-cut:var(--surface)]" />
+        <SnagMark className="size-8 shrink-0 text-lime [--snag-mark-cut:var(--chrome)]" />
         <h1 id="intro-title" className="pt-0.5 text-title text-ink">
           {fill(c.greeting, { name: developerName ?? c.fallbackName })}
         </h1>

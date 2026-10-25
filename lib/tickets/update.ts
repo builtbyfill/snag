@@ -53,9 +53,12 @@ export async function updateTicketField(db: Db, ticketId: string, field: unknown
     if (!current) return { ok: false, error: 'notFound' } as const;
 
     const set: Partial<typeof tickets.$inferInsert> = { [field]: next, updatedAt: now };
-    // Evidence describes a value the extraction found; a cleared value has nothing to point at.
-    if (field === 'expectedResult' && next === null) set.expectedResultEvidence = null;
-    if (field === 'stepsToReproduce' && next === null) set.stepsToReproduceEvidence = null;
+    // Evidence explains the extraction's own wording. Once the developer changes or clears the
+    // value it no longer applies, so the ticket stops calling it "suggested". The model's original
+    // stays in the extractions table.
+    const changed = JSON.stringify(current[field] ?? null) !== JSON.stringify(next ?? null);
+    if (field === 'expectedResult' && changed) set.expectedResultEvidence = null;
+    if (field === 'stepsToReproduce' && changed) set.stepsToReproduceEvidence = null;
     await tx.update(tickets).set(set).where(eq(tickets.id, ticketId));
 
     if ((field === 'status' || field === 'priority') && current[field] !== next) {

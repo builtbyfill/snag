@@ -21,12 +21,13 @@ export function TicketCard({ card }: { card: CardView }) {
   const extracted = card.extractionState === "extracted";
   const failed = card.extractionState === "extraction_failed";
   const done = card.status === "done";
+  // Shown once: "0.80 · high" or "0.41 · low"; "low" in marker-ink, "high" muted.
+  const level = card.confidenceLow ? c.low : c.high;
   const confidence = card.confidence && (
-    <span title={c.confidenceLabel} className="font-mono text-meta text-ink-muted">
-      <span className="sr-only">{fillIn(c.confidence, { value: card.confidence })}</span>
+    <span className="font-mono text-meta text-ink-muted">
+      <span className="sr-only">{fillIn(c.confidence, { value: card.confidence, level })}</span>
       <span aria-hidden>
-        {card.confidence}
-        {card.confidenceLow && ` · ${c.low}`}
+        {card.confidence} · <span className={cn(card.confidenceLow && "text-marker-ink")}>{level}</span>
       </span>
     </span>
   );
@@ -36,7 +37,7 @@ export function TicketCard({ card }: { card: CardView }) {
       data-card
       className={cn(
         "relative max-w-[560px] rounded-xl border px-4 py-3 transition-colors",
-        extracted && "border-line-medium bg-surface hover:border-line-strong",
+        extracted && "border-line-medium border-l-[3px] border-l-lime bg-surface hover:border-line-strong hover:border-l-lime",
         card.extractionState === "pending" && "border-dashed border-line-strong hover:bg-surface",
         failed && "border-danger hover:bg-surface",
       )}
@@ -74,7 +75,7 @@ export function TicketCard({ card }: { card: CardView }) {
             </span>
             {card.askClient && (
               <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="inline-flex h-6 items-center gap-1 rounded-full border border-line-strong px-2 text-meta font-medium text-ink">
+                <span className="inline-flex h-5 items-center gap-1 rounded-[4px] border border-marker-ink px-1.5 text-meta font-medium text-marker-ink">
                   <MessageCircleQuestionIcon className="size-3.5" aria-hidden />
                   {c.askClient}
                   <span className="sr-only">. {c.askClientHint}</span>

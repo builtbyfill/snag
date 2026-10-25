@@ -44,7 +44,8 @@ describe('createProjectAction', () => {
   it('goes on to the database with a valid session', async () => {
     const { createProjectAction } = await import('@/app/actions/projects');
     cookie.value = createSessionToken(env);
-    await expect(createProjectAction({ error: null, id: null }, form())).rejects.toThrow('database reached');
+    // The fake database throws 'database reached'; the action turns that into its server message.
+    await expect(createProjectAction({ error: null, id: null }, form())).resolves.toEqual({ error: 'server', id: null });
   });
 });
 

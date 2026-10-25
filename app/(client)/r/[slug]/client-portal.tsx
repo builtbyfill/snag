@@ -9,53 +9,75 @@ import { SnagMark } from "@/components/snag-mark";
 import type { TicketStatus } from "@/components/status-glyph";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { clientCopy as copy, fill } from "@/lib/copy/client";
-import { DEFAULT_OFFICE_HOURS, officeStatus, type OfficeStatus } from "@/lib/office-hours";
+import { clientCopy as copy } from "@/lib/copy/client";
+import { officeStatus, type OfficeHours, type OfficeStatus } from "@/lib/office-hours";
+import type { DemoReport } from "@/lib/reports/demo";
 import { groupReports } from "@/lib/reports/groups";
-import { addFollowUpToHistory, addToHistory, historyKey, readHistory, type FollowUp, type HistoryEntry } from "@/lib/reports/history";
+import {
+  addFollowUpToHistory,
+  addToHistory,
+  historyKey,
+  moveLegacyHistory,
+  readHistory,
+  type FollowUp,
+  type HistoryEntry,
+} from "@/lib/reports/history";
 import { prepareScreenshot } from "@/lib/reports/prepare-image";
 import { pruneScreenshots, saveScreenshot } from "@/lib/reports/screenshot-store";
 import { applyStarter } from "@/lib/reports/starters";
-import { formatSentAt } from "@/lib/reports/sent-at";
+import { MAX_STATUS_IDS } from "@/lib/reports/statuses";
 import { checkSentenceDetail } from "@/lib/reports/validate";
 import { NOT_READ, notifyStoredString, useStoredString } from "@/lib/use-stored-string";
-import { cn } from "@/lib/utils";
 import { Composer, type Chosen, type Problem } from "./composer";
 import { FeedItem } from "./feed-item";
-import { FollowUpComposer } from "./follow-up-composer";
 import { HelpBlock } from "./help-block";
+import { HowItWorks } from "./how-it-works";
 import { NextSteps } from "./next-steps";
 import { ReportDetails } from "./report-details";
 import { ReportList } from "./report-list";
 import { WelcomeBlock, replyLine } from "./welcome-block";
 
-const draftKey = (slug: string) => `snag:draft:v1:${slug}`;
+/** The unsent draft, under the project's own prefix like the history ("snag:<slug>"). */
+const draftKey = (slug: string) => `${historyKey(slug)}:draft`;
 const SLOW_AFTER_MS = 3000;
 const OFFICE_REFRESH_MS = 60_000;
 
 /**
- * The client's page (Filip, 2026-10-18): a dark bar on top, then full-bleed panes. Every report is
- * its own chat, as in a messaging app. Left (300px): "New report" and this device's reports, with
- * Help pinned below. Middle: either a new chat (welcome block, composer pinned to the bottom) or
- * one report's chat (her message with its status rows; no composer, because a report takes no
- * replies). Right (320px): the open report's status. Below 1024px only the middle pane shows and
- * the list opens from an icon in the bar. Only reports sent from this device appear, and only
- * their status comes from the server.
+ * The client's page (Filip, 2026-10-25): a bar on top, then three panes locked to the viewport.
+ * Left (300px): this feed's reports grouped by status, with Help pinned below. Middle: the
+ * welcome card, then every report as one chat, with the composer pinned to the bottom once there
+ * is a report (under the card before that). Right (320px): the selected report's status timeline
+ * and what happens next, or how it works while nothing is selected. Between 768 and 1023px the
+ * right pane moves under the feed and the list opens from the bar; on phones only the chat shows.
+ *
+ * The feed holds the reports sent from this device (localStorage, "snag:<slug>"). A demo project
+ * adds every report it has, so judges see a full feed; a real project never does.
  */
 export function ClientPortal({
   slug,
   projectName,
   developerName,
   developerEmail,
+  officeHours,
+  demoReports,
 }: {
   slug: string;
   projectName: string;
   developerName: string | null;
   developerEmail: string | null;
+  officeHours: OfficeHours;
+  /** Every report of a demo project, with its status; null for a real project. */
+  demoReports: DemoReport[] | null;
 }) {
   const problemId = useId();
   const attachRef = useRef<HTMLButtonElement>(null);
   const sentenceRef = useRef<HTMLTextAreaElement>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
+
+  // A history stored under the old key moves to "snag:<slug>" once, before it is read.
+  useEffect(() => {
+    if (moveLegacyHistory(slug)) notifyStoredString();
+  }, [slug]);
 
   // This device's history, read after hydration (null until then). If the browser can't store
   // it, the reports sent in this visit are kept in memory instead.
@@ -65,9 +87,31 @@ export function ClientPortal({
     () => unsaved ?? (storedHistory === NOT_READ ? null : readHistory(slug, { getItem: () => storedHistory })),
     [slug, storedHistory, unsaved],
   );
-  const [statuses, setStatuses] = useState<Record<string, TicketStatus>>({});
-  // The open chat: a report id, null for a new chat, undefined until the client chooses (then
-  // the ?report= link decides, else a new chat).
+  // Notes added in this visit to demo reports this device didn't send (they have no history entry).
+  const [extraFollowUps, setExtraFollowUps] = useState<Record<string, FollowUp[]>>({});
+
+  // The feed: this device's reports, plus a demo project's, oldest first.
+  const feed = useMemo(() => {
+    const own = new Set((history ?? []).map((h) => h.ticketId));
+    const demo = (demoReports ?? [])
+      .filter((d) => !own.has(d.ticketId))
+      .map((d): HistoryEntry => ({
+        ticketId: d.ticketId,
+        sentence: d.sentence,
+        thumb: d.thumb,
+        sentAt: d.sentAt,
+        followUps: [...(d.followUps ?? []), ...(extraFollowUps[d.ticketId] ?? [])],
+      }));
+    return [...(history ?? []), ...demo].sort((a, b) => a.sentAt.localeCompare(b.sentAt));
+  }, [history, demoReports, extraFollowUps]);
+  const hasFeed = feed.length > 0;
+  const newestId = hasFeed ? feed[feed.length - 1].ticketId : null;
+
+  const [statuses, setStatuses] = useState<Record<string, TicketStatus>>(() =>
+    Object.fromEntries((demoReports ?? []).map((d) => [d.ticketId, d.status])),
+  );
+  // The selected report: an id, null for none (the composer), undefined until chosen (then the
+  // ?report= link decides, else the newest report).
   const [selectedId, setSelectedId] = useState<string | null | undefined>(undefined);
   const [freshId, setFreshId] = useState<string | null>(null);
   const [freshFollowUpId, setFreshFollowUpId] = useState<string | null>(null);
@@ -79,7 +123,7 @@ export function ClientPortal({
   // An unsent draft survives a reload. null = not typed in this visit.
   const storedDraft = useStoredString(draftKey(slug));
   const [typed, setTyped] = useState<string | null>(null);
-  const sentence = typed ?? (storedDraft === NOT_READ ? "" : storedDraft ?? "");
+  const sentence = typed ?? (storedDraft === NOT_READ ? "" : (storedDraft ?? ""));
   const [problem, setProblem] = useState<Problem | null>(null);
   const [slow, setSlow] = useState(false);
   const [sending, startSending] = useTransition();
@@ -88,11 +132,11 @@ export function ClientPortal({
   // server renders the open-hours line) and refreshed every minute.
   const [office, setOffice] = useState<OfficeStatus>({ open: true });
   useEffect(() => {
-    const tick = () => setOffice(officeStatus(new Date(), DEFAULT_OFFICE_HOURS));
+    const tick = () => setOffice(officeStatus(new Date(), officeHours));
     tick();
     const timer = setInterval(tick, OFFICE_REFRESH_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [officeHours]);
 
   useEffect(() => {
     if (typed === null) return;
@@ -104,13 +148,17 @@ export function ClientPortal({
     }
   }, [slug, typed]);
 
-  // Statuses for this device's reports only, refreshed whenever the page becomes visible again.
-  const ids = useMemo(() => (history ?? []).map((h) => h.ticketId), [history]);
+  // Statuses for the feed's reports, refreshed whenever the page becomes visible again. The
+  // action takes at most MAX_STATUS_IDS ids at a time.
+  const ids = useMemo(() => feed.map((h) => h.ticketId), [feed]);
   useEffect(() => {
     if (ids.length === 0) return;
     let cancelled = false;
     const refresh = async () => {
-      const rows = await getReportStatusesAction(slug, ids).catch(() => []);
+      const rows: { id: string; status: TicketStatus }[] = [];
+      for (let i = 0; i < ids.length; i += MAX_STATUS_IDS) {
+        rows.push(...(await getReportStatusesAction(slug, ids.slice(i, i + MAX_STATUS_IDS)).catch(() => [])));
+      }
       if (!cancelled) setStatuses((prev) => ({ ...prev, ...Object.fromEntries(rows.map((r) => [r.id, r.status])) }));
     };
     refresh();
@@ -122,8 +170,7 @@ export function ClientPortal({
     };
   }, [slug, ids]);
 
-  // A "Copy link to this report" link (?report=<id>) opens that report's chat, when this device
-  // has it. Elsewhere the link opens a new chat: reports live only where they were sent.
+  // A "Copy link" link (?report=<id>) selects that report when this feed has it.
   const linkedId = useSearchParams().get("report");
 
   // Release the preview's memory when it is replaced or removed.
@@ -137,7 +184,6 @@ export function ClientPortal({
   const choose = useCallback(
     async (file: File | undefined) => {
       if (!file || sending) return;
-      setSelectedId(null); // a screenshot always starts a new chat
       setProblem(null);
       setPreparing(true);
       const prepared = await prepareScreenshot(file);
@@ -182,6 +228,9 @@ export function ClientPortal({
     setTimeout(() => field?.setSelectionRange(text.length, text.length), 0);
   }
 
+  const scrollToBottom = () =>
+    requestAnimationFrame(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight }));
+
   function send() {
     if (sending || preparing) return;
     if (!chosen) {
@@ -208,12 +257,12 @@ export function ClientPortal({
           setProblem({ field: result.field, code: result.error });
           return;
         }
-        const saved = addToHistory(slug, {
-          ticketId: result.ticketId,
-          sentence: sentence.trim(),
-          thumb: chosen.thumb,
-          sentAt: new Date().toISOString(),
-        });
+        const saved = addToHistory(
+          slug,
+          { ticketId: result.ticketId, sentence: sentence.trim(), thumb: chosen.thumb, sentAt: new Date().toISOString() },
+          undefined,
+          history ?? [],
+        );
         if (saved.ok) notifyStoredString();
         else setUnsaved(saved.entries);
         // The full-size copy stays on this device; copies of reports that left the history go.
@@ -224,10 +273,11 @@ export function ClientPortal({
         setStatuses((prev) => ({ ...prev, [result.ticketId]: "new" }));
         setChosen(null);
         setTyped("");
-        // The new chat becomes this report's chat, marked Sent; the announcement tells screen readers.
+        // The new report joins the end of the feed, marked Sent; the announcement tells screen readers.
         setFreshId(result.ticketId);
         setSelectedId(result.ticketId);
         setAnnouncement(copy.report.announce);
+        scrollToBottom();
       } catch {
         // Network failure: the screenshot and the text stay in the composer.
         setProblem({ field: "form", code: "server" });
@@ -238,30 +288,87 @@ export function ClientPortal({
     });
   }
 
-  const hasHistory = (history?.length ?? 0) > 0;
   const inProgress = groupReports(history ?? [], statuses).open.length;
-  const activeId = selectedId === undefined ? linkedId : selectedId;
-  const selected = activeId ? (history?.find((h) => h.ticketId === activeId) ?? null) : null;
+  const activeId = selectedId === undefined ? (feed.some((e) => e.ticketId === linkedId) ? linkedId : newestId) : selectedId;
+  const selected = activeId ? (feed.find((h) => h.ticketId === activeId) ?? null) : null;
 
-  // A follow-up is saved on the server first, then kept in this device's history to show in the chat.
+  // A follow-up is saved on the server first, then kept with its report to show in the feed.
   const addedFollowUp = (ticketId: string, followUp: FollowUp) => {
-    const saved = addFollowUpToHistory(slug, ticketId, followUp);
+    const saved = addFollowUpToHistory(slug, ticketId, followUp, undefined, history ?? []);
     if (saved.ok) notifyStoredString();
-    else setUnsaved(saved.entries);
+    else if ((history ?? []).some((e) => e.ticketId === ticketId)) setUnsaved(saved.entries);
+    else setExtraFollowUps((prev) => ({ ...prev, [ticketId]: [...(prev[ticketId] ?? []), followUp] }));
     setFreshFollowUpId(followUp.id);
     setAnnouncement(copy.followUp.announce);
   };
 
-  // null opens a new chat and puts the cursor in its composer; an id opens that report's chat.
+  // null puts the cursor in the composer; an id selects that report and scrolls the feed to it.
   const select = (id: string | null) => {
     setListOpen(false);
     setAnnouncement("");
     setSelectedId(id);
     setFreshId(null);
-    if (id === null) setTimeout(() => sentenceRef.current?.focus(), 0);
+    setFreshFollowUpId(null);
+    setTimeout(() => {
+      if (id === null) sentenceRef.current?.focus();
+      else document.getElementById(`report-${id}`)?.scrollIntoView({ block: "start", behavior: "instant" });
+    }, 0);
   };
-  const help = <HelpBlock copy={copy} projectName={projectName} developerName={developerName} developerEmail={developerEmail} />;
-  const list = <ReportList history={history ?? []} statuses={statuses} selectedId={selected?.ticketId ?? null} copy={copy} onSelect={select} />;
+
+  // A feed opens at its end, like any chat; a ?report= link opens at that report (activeId
+  // already follows the link, so this only scrolls).
+  const opened = useRef(false);
+  useEffect(() => {
+    if (history === null || opened.current) return;
+    opened.current = true;
+    const linked = linkedId && feed.some((e) => e.ticketId === linkedId) ? document.getElementById(`report-${linkedId}`) : null;
+    if (linked) linked.scrollIntoView({ block: "start", behavior: "instant" });
+    else if (hasFeed) scrollToBottom();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the history has been read
+  }, [history]);
+
+  const who = { projectName, developerName, developerEmail };
+  const help = <HelpBlock copy={copy} {...who} />;
+  const list = <ReportList history={feed} statuses={statuses} selectedId={selected?.ticketId ?? null} copy={copy} onSelect={select} />;
+  const sidePanel = selected ? (
+    <ReportDetails
+      entry={selected}
+      status={statuses[selected.ticketId] ?? "new"}
+      copy={copy}
+      panel={<NextSteps copy={copy} developerEmail={developerEmail} />}
+    />
+  ) : (
+    <HowItWorks copy={copy} {...who} />
+  );
+  const composer = (
+    <Composer
+      copy={copy}
+      chosen={chosen}
+      preparing={preparing}
+      sentence={sentence}
+      onSentenceChange={(value) => {
+        setTyped(value);
+        // Once a sentence hint is showing, clear it as soon as the text is long enough.
+        if (problem?.field === "sentence" && !checkSentenceDetail(value, copy.composer.chips)) setProblem(null);
+      }}
+      onAttach={() => !sending && open()}
+      onRemove={() => {
+        if (sending) return;
+        setChosen(null);
+        setTimeout(() => attachRef.current?.focus(), 0);
+      }}
+      onChip={startWithChip}
+      onSend={send}
+      sending={sending}
+      slow={slow}
+      problem={problem}
+      problemId={problemId}
+      attachRef={attachRef}
+      sentenceRef={sentenceRef}
+      // Pinned to the bottom of the pane once the feed has messages; under the welcome card before.
+      className={hasFeed ? "shrink-0 md:px-8 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[720px]" : "border-t-0 px-0 pt-0 pb-0 md:px-0"}
+    />
+  );
 
   return (
     <div {...getRootProps({ className: "relative flex h-dvh flex-col bg-canvas outline-none" })}>
@@ -271,30 +378,30 @@ export function ClientPortal({
       </p>
 
       {/* The bar: who this page belongs to and when to expect a reply. */}
-      <header data-surface="dark" className="shrink-0 border-b border-chrome-line bg-chrome text-chrome-fg">
+      <header data-chrome className="shrink-0 border-b border-chrome-line bg-chrome text-chrome-fg">
         <div className="flex h-[51px] w-full items-center gap-3 px-4">
-          {hasHistory && (
+          {hasFeed && (
             <Sheet open={listOpen} onOpenChange={setListOpen}>
               <SheetTrigger
                 render={
                   <Button
                     variant="ghost"
-                    aria-label={`${copy.list.title}, ${history?.length}`}
+                    aria-label={`${copy.list.title}, ${feed.length}`}
                     className="-ml-2 h-9 min-w-9 shrink-0 gap-1.5 rounded-md px-2 text-chrome-fg hover:bg-chrome-hover hover:text-chrome-fg pointer-coarse:h-11 pointer-coarse:min-w-11 lg:hidden"
                   />
                 }
               >
                 <ListIcon className="size-5" aria-hidden />
                 <span aria-hidden className="text-meta font-medium tabular-nums">
-                  {history?.length}
+                  {feed.length}
                 </span>
               </SheetTrigger>
-              {/* Portalled to <body>, outside the page's dark wrapper: it sets "dark" itself. */}
               <SheetContent
                 side="left"
                 showCloseButton={false}
                 data-surface="client"
-                className="dark w-[85%] max-w-[300px] gap-0 border-line bg-pane p-0 text-ink shadow-none"
+                data-list
+                className="w-[85%] max-w-[300px] gap-0 border-line bg-pane p-0 text-ink shadow-none"
               >
                 <div className="flex shrink-0 items-center justify-between border-b border-line py-1.5 pr-2 pl-4">
                   <SheetTitle className="text-body font-semibold text-ink">{copy.list.title}</SheetTitle>
@@ -307,7 +414,7 @@ export function ClientPortal({
               </SheetContent>
             </Sheet>
           )}
-          <SnagMark className="size-7 shrink-0 text-chrome-fg [--snag-mark-cut:var(--chrome)]" />
+          <SnagMark className="size-7 shrink-0 text-marker [--snag-mark-cut:var(--chrome)]" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-body leading-tight font-semibold">{projectName}</p>
             <p className="mt-0.5 flex min-w-0 items-center gap-x-3 text-meta text-chrome-fg-muted">
@@ -321,16 +428,10 @@ export function ClientPortal({
         </div>
       </header>
 
-      {/* Three full-bleed panes from 1024px; below that, the conversation alone fills the page. */}
-      <div
-        className={cn(
-          "flex min-h-0 w-full flex-1 flex-col bg-canvas",
-          "lg:grid lg:grid-rows-[minmax(0,1fr)]",
-          selected ? "lg:grid-cols-[300px_minmax(0,1fr)_320px]" : "lg:grid-cols-[300px_minmax(0,1fr)]",
-        )}
-      >
-        <aside className="hidden min-h-0 flex-col border-r border-line bg-pane lg:flex">
-          {hasHistory ? (
+      {/* Three panes from 1024px; below that the chat fills the page (the right pane's content under the feed from 768px). */}
+      <div className="grid min-h-0 w-full flex-1 grid-rows-[minmax(0,1fr)] bg-canvas lg:grid-cols-[300px_minmax(0,1fr)_320px]">
+        <aside data-list className="hidden min-h-0 flex-col border-r border-line bg-pane lg:flex">
+          {hasFeed ? (
             <>
               <div className="min-h-0 flex-1 overflow-y-auto">{list}</div>
               {/* With reports, the list leads and the help is pinned at the bottom. */}
@@ -342,81 +443,41 @@ export function ClientPortal({
           )}
         </aside>
 
-        {/* The chat: one report's thread, or a new chat with the composer pinned to the bottom. */}
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {selected ? (
-            <>
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-10 md:py-6">
-                <h1 className="sr-only">{fill(copy.thread.title, { date: formatSentAt(selected.sentAt) })}</h1>
-                <FeedItem
-                  key={selected.ticketId}
-                  entry={selected}
-                  status={statuses[selected.ticketId] ?? "new"}
-                  copy={copy}
-                  slug={slug}
-                  fresh={selected.ticketId === freshId}
-                  freshFollowUpId={freshFollowUpId}
-                />
-              </div>
-              {/* Add to this report, or start a new one for something else. */}
-              <FollowUpComposer
-                key={selected.ticketId}
-                copy={copy}
-                slug={slug}
-                ticketId={selected.ticketId}
-                onAdded={(followUp) => addedFollowUp(selected.ticketId, followUp)}
-                onNewReport={() => select(null)}
-              />
-            </>
-          ) : (
-            // A new chat: the welcome card, then the composer, pinned to the bottom. Only on desktop
-            // with no reports yet does it sit right under the card (Filip, 2026-10-18).
-            <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-4 md:px-10 md:pt-6", !hasHistory && "lg:pb-6")}>
+        {/* The chat: the welcome card, then every report, oldest first; the composer at the bottom. */}
+        <main className="flex min-h-0 min-w-0 flex-col">
+          <div ref={feedRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
+            <div className="mx-auto flex w-full max-w-[720px] flex-col gap-6">
               <WelcomeBlock copy={copy} developerName={developerName} inProgress={inProgress} />
-              <Composer
-                className={cn(
-                  "sticky bottom-0 -mx-4 mt-auto md:-mx-10",
-                  !hasHistory && "lg:static lg:mx-0 lg:mt-4 lg:border-t-0 lg:px-0 lg:pt-0 lg:pb-0",
-                )}
-                copy={copy}
-                chosen={chosen}
-                preparing={preparing}
-                sentence={sentence}
-                onSentenceChange={(value) => {
-                  setTyped(value);
-                  // Once a sentence hint is showing, clear it as soon as the text is long enough.
-                  if (problem?.field === "sentence" && !checkSentenceDetail(value, copy.composer.chips)) setProblem(null);
-                }}
-                onAttach={() => !sending && open()}
-                onRemove={() => {
-                  if (sending) return;
-                  setChosen(null);
-                  setTimeout(() => attachRef.current?.focus(), 0);
-                }}
-                onChip={startWithChip}
-                onSend={send}
-                sending={sending}
-                slow={slow}
-                problem={problem}
-                problemId={problemId}
-                attachRef={attachRef}
-                sentenceRef={sentenceRef}
-              />
+              {!hasFeed && composer}
+              {hasFeed && (
+                <section aria-label={copy.list.title} className="flex flex-col gap-8">
+                  {feed.map((entry) => (
+                    <FeedItem
+                      key={entry.ticketId}
+                      entry={entry}
+                      status={statuses[entry.ticketId] ?? "new"}
+                      copy={copy}
+                      slug={slug}
+                      fresh={entry.ticketId === freshId}
+                      freshFollowUpId={freshFollowUpId}
+                      selected={entry.ticketId === activeId}
+                      onSelect={() => entry.ticketId !== activeId && setSelectedId(entry.ticketId)}
+                      onAdded={(followUp) => addedFollowUp(entry.ticketId, followUp)}
+                    />
+                  ))}
+                </section>
+              )}
+              {/* Between 768 and 1023px the right pane's content sits under the feed. */}
+              {hasFeed && <div className="hidden border-t border-line pt-6 md:block lg:hidden">{sidePanel}</div>}
             </div>
-          )}
+          </div>
+          {hasFeed && composer}
         </main>
 
-        {/* The details pane: the open report's status. Phones get the status rows in the thread instead. */}
-        {selected && (
-          <aside aria-label={copy.report.progressLabel} className="hidden min-h-0 border-l border-line bg-pane p-4 lg:block lg:overflow-y-auto">
-            <ReportDetails
-              entry={selected}
-              status={statuses[selected.ticketId] ?? "new"}
-              copy={copy}
-              panel={<NextSteps copy={copy} developerEmail={developerEmail} />}
-            />
-          </aside>
-        )}
+        {/* The details pane: the selected report's status, or how it works. Phones carry the status rows in the feed instead. */}
+        <aside aria-label={copy.report.progressLabel} className="hidden min-h-0 overflow-y-auto border-l border-line bg-pane-soft p-4 lg:block">
+          {sidePanel}
+        </aside>
       </div>
 
       {isDragActive && (

@@ -20,8 +20,31 @@ const entrySchema = z.object({
 export type FollowUp = { id: string; body: string; sentAt: string };
 export type HistoryEntry = { ticketId: string; sentence: string; thumb: string; sentAt: string; followUps?: FollowUp[] };
 
+/** This project's history: "snag:<slug>". Nothing else under "snag:" or any other key is read. */
 export function historyKey(slug: string): string {
-  return `snag:reports:v1:${slug}`;
+  return `snag:${slug}`;
+}
+/** The key before 2026-10-25; moveLegacyHistory carries its entries over once. */
+export const legacyHistoryKey = (slug: string): string => `snag:reports:v1:${slug}`;
+
+/**
+ * Moves a history stored under the old key to the new one, once, and only when the new key is
+ * still empty (a newer history is never overwritten). Returns true when something was moved.
+ */
+export function moveLegacyHistory(
+  slug: string,
+  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null = defaultStorage(),
+): boolean {
+  if (!storage) return false;
+  try {
+    const old = storage.getItem(legacyHistoryKey(slug));
+    if (old === null) return false;
+    if (storage.getItem(historyKey(slug)) === null) storage.setItem(historyKey(slug), old);
+    storage.removeItem(legacyHistoryKey(slug));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function defaultStorage(): Storage | null {
@@ -59,13 +82,16 @@ export function readHistory(
 /**
  * Appends the entry (once per ticketId) and keeps the newest HISTORY_LIMIT. `entries` is the
  * resulting list even when the write fails, so the page can still show it for this visit.
+ * `base` is the list the page is showing: when storage refused an earlier write, it holds reports
+ * that storage doesn't, and they must not be lost.
  */
 export function addToHistory(
   slug: string,
   entry: HistoryEntry,
   storage: Pick<Storage, 'getItem' | 'setItem'> | null = defaultStorage(),
+  base: HistoryEntry[] = readHistory(slug, storage),
 ): { ok: boolean; entries: HistoryEntry[] } {
-  const current = readHistory(slug, storage);
+  const current = base;
   const valid = entrySchema.safeParse(entry);
   if (!valid.success) return { ok: false, entries: current };
   if (current.some((e) => e.ticketId === entry.ticketId)) return { ok: true, entries: current };
@@ -90,8 +116,9 @@ export function addFollowUpToHistory(
   ticketId: string,
   followUp: FollowUp,
   storage: Pick<Storage, 'getItem' | 'setItem'> | null = defaultStorage(),
+  base: HistoryEntry[] = readHistory(slug, storage),
 ): { ok: boolean; entries: HistoryEntry[] } {
-  const current = readHistory(slug, storage);
+  const current = base;
   const valid = followUpSchema.safeParse(followUp);
   if (!valid.success || !current.some((e) => e.ticketId === ticketId)) return { ok: false, entries: current };
 

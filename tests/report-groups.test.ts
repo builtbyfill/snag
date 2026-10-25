@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dateTile, groupReports } from '@/lib/reports/groups';
+import { dateTile, groupByStatus, groupReports } from '@/lib/reports/groups';
 import type { HistoryEntry } from '@/lib/reports/history';
 
 const entry = (ticketId: string, sentAt: string): HistoryEntry => ({
@@ -32,5 +32,20 @@ describe('dateTile', () => {
 
   it('returns empty parts for an unreadable date', () => {
     expect(dateTile('nope')).toEqual({ day: '', month: '' });
+  });
+});
+
+describe('groupByStatus (client list: Received / In progress / Done, newest first)', () => {
+  const history = [
+    { ticketId: 'a', sentence: 'first', thumb: 'data:image/jpeg;base64,x', sentAt: '2026-10-16T10:00:00.000Z' },
+    { ticketId: 'b', sentence: 'second', thumb: 'data:image/jpeg;base64,x', sentAt: '2026-10-17T10:00:00.000Z' },
+    { ticketId: 'c', sentence: 'third', thumb: 'data:image/jpeg;base64,x', sentAt: '2026-10-18T10:00:00.000Z' },
+  ];
+
+  it('puts each report under its status, newest first, and an unknown status under Received', () => {
+    const groups = groupByStatus(history, { a: 'done', b: 'in_progress' });
+    expect(groups.new.map((e) => e.ticketId)).toEqual(['c']);
+    expect(groups.in_progress.map((e) => e.ticketId)).toEqual(['b']);
+    expect(groups.done.map((e) => e.ticketId)).toEqual(['a']);
   });
 });

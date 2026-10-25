@@ -44,6 +44,7 @@ services:
       DATABASE_URL: postgres://snag:${POSTGRES_PASSWORD}@db:5432/snag
       UPLOAD_DIR: /data/uploads
       PORT: "3000"
+      DEMO_ACCESS_CODE: ${DEMO_ACCESS_CODE:-}  # optional judges' code, from .env or the shell
     volumes:
       - uploads:/data/uploads
     ports:

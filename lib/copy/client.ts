@@ -22,7 +22,6 @@ export const clientCopy = {
   list: {
     title: 'Your reports',
     newReport: 'New report',
-    groups: { open: 'In progress', done: 'Done' },
     close: 'Close',
   },
   welcome: {
@@ -56,12 +55,11 @@ export const clientCopy = {
     send: 'Send',
     sending: 'Sending…',
     added: 'Added {date}',
-    otherProblem: 'Something else broken?',
     announce: 'Added to your report.',
   },
   feed: {
     sent: 'Sent',
-    copyLink: 'Copy link to this report',
+    copyLink: 'Copy link (works on this device)',
     linkCopied: 'Link copied',
   },
   report: {
@@ -80,13 +78,13 @@ export const clientCopy = {
     announce: 'Report sent.',
     openScreenshot: 'Open your screenshot full size',
     closeScreenshot: 'Close',
-    contactLine: 'Need to add something? Email {email}',
+    contactLine: 'Questions about this report? Email {email}',
     panel: {
       title: 'What happens next',
       lines: [
         'The team reads your report, usually the same day.',
         'When someone starts on it, the status here changes to In progress.',
-        'When it is fixed, it changes to Done. Keep this link to check.',
+        'When it is fixed, it changes to Done. Check back here on this device.',
       ],
     },
   },
@@ -119,7 +117,7 @@ export const clientCopy = {
     tooLarge: 'This image is too large. Try another one.',
     tooManyPixels: 'This image is too large. Try another one.',
     oneFile: 'Choose one screenshot.',
-    rateLimited: 'Too many reports from this device in the last hour. Try again in an hour.',
+    rateLimited: "We can't take more reports right now. Try again in an hour.",
     notFound: "This report link doesn't work anymore. Ask for a new one.",
     server: "Couldn't send the report. Check your connection and try again.",
     followUpEmpty: 'Write a few words before sending.',

@@ -216,3 +216,29 @@ describe('failInterruptedExtractions (runs once when the server starts)', () => 
     expect(await ticket(id)).toMatchObject({ extractionState: 'extracted', extractionError: null, failedReason: null });
   });
 });
+
+describe('when saving the outcome fails', () => {
+  it('marks the ticket failed (so Retry is offered) and still throws for the caller to log', async () => {
+    const id = await savedReport();
+    const broken = new Proxy(db(), {
+      get(target, prop, receiver) {
+        if (prop === 'transaction') return async () => { throw new Error('connection reset\nquery: update ...'); };
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as ReturnType<typeof db>;
+    await expect(
+      runExtraction(id, {
+        db: broken,
+        storage,
+        extraction: { provider: new FakeProvider([reply(VALID)]), env: { EXTRACTION_MODEL: 'test-model', EXTRACTION_MAX_EDGE: 500 }, sleep: async () => {} },
+      }),
+    ).rejects.toThrow('connection reset');
+    expect(await ticket(id)).toMatchObject({
+      extractionState: 'extraction_failed',
+      failedReason: 'extraction_error',
+      extractionError: "Couldn't save the result: connection reset",
+      title: null,
+    });
+    expect(await attempts(id)).toEqual([]);
+  });
+});

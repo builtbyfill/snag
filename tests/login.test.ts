@@ -9,6 +9,20 @@ const MINUTE = 60 * 1000;
 
 afterEach(() => vi.restoreAllMocks());
 
+describe('demo access code', () => {
+  const withDemo = { ...env, DEMO_ACCESS_CODE: 'judges-code-for-tests-only' };
+
+  it('signs in with the demo code when it is set, and the developer code still works', () => {
+    expect(attemptLogin(withDemo.DEMO_ACCESS_CODE, { env: withDemo, ip: '203.0.113.9', limiter: createLoginLimiter(), now: NOW }).ok).toBe(true);
+    expect(attemptLogin(withDemo.ADMIN_SECRET, { env: withDemo, ip: '203.0.113.9', limiter: createLoginLimiter(), now: NOW }).ok).toBe(true);
+  });
+
+  it('refuses the demo code when it is not set, and any other code', () => {
+    expect(attemptLogin('judges-code-for-tests-only', { env, ip: '203.0.113.9', limiter: createLoginLimiter(), now: NOW })).toEqual({ ok: false, error: 'mismatch' });
+    expect(attemptLogin('not-the-code-at-all', { env: withDemo, ip: '203.0.113.9', limiter: createLoginLimiter(), now: NOW })).toEqual({ ok: false, error: 'mismatch' });
+  });
+});
+
 describe('login limiter', () => {
   it('allows five failures from one address in 15 minutes, then locks it', () => {
     const limiter = createLoginLimiter();

@@ -12,6 +12,16 @@ export function groupReports(history: HistoryEntry[], statuses: Record<string, S
   };
 }
 
+/** The client's list by status: Received, In progress, Done; newest first in each. A status not loaded yet reads as Received. */
+export function groupByStatus(history: HistoryEntry[], statuses: Record<string, Status | undefined>): Record<Status, HistoryEntry[]> {
+  const newestFirst = [...history].sort((a, b) => b.sentAt.localeCompare(a.sentAt));
+  return {
+    new: newestFirst.filter((e) => (statuses[e.ticketId] ?? 'new') === 'new'),
+    in_progress: newestFirst.filter((e) => statuses[e.ticketId] === 'in_progress'),
+    done: newestFirst.filter((e) => statuses[e.ticketId] === 'done'),
+  };
+}
+
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 /** Day and short month for the date tile in lists (local time). */

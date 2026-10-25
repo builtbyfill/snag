@@ -7,7 +7,7 @@ import { projects } from '@/lib/db/schema';
 export const PROJECT_NAME_MIN = 2;
 export const PROJECT_NAME_MAX = 60;
 
-export type CreateProjectError = 'nameShort' | 'nameLong';
+export type CreateProjectError = 'nameShort' | 'nameLong' | 'server';
 export type CreateProjectResult = { ok: true; id: string } | { ok: false; error: CreateProjectError };
 
 export const newSlug = (): string => nanoid();

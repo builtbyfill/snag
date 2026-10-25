@@ -10,9 +10,8 @@ const OpenNav = createContext<() => void>(() => {});
 export const useOpenNav = () => useContext(OpenNav);
 
 /**
- * The nav column from 1280px; below that the same nav in a sheet from the left. The sheet is
- * portalled outside the page's dark wrapper, so it sets "dark" itself. Following a link inside
- * it closes it.
+ * The nav column from 1280px; below that the same nav in a sheet from the left. Following a
+ * link inside it closes it.
  */
 export function DashboardFrame({ nav, children }: { nav: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -33,7 +32,7 @@ export function DashboardFrame({ nav, children }: { nav: ReactNode; children: Re
           side="left"
           showCloseButton={false}
           data-surface="admin"
-          className="dark gap-0 border-line bg-pane p-0 text-ink shadow-none data-[side=left]:w-[260px] data-[side=left]:max-w-[85%] data-[side=left]:sm:max-w-[85%]"
+          className="gap-0 border-chrome-line bg-chrome p-0 text-chrome-fg shadow-none data-[side=left]:w-[260px] data-[side=left]:max-w-[85%] data-[side=left]:sm:max-w-[85%]"
           onClickCapture={(event) => {
             if ((event.target as HTMLElement).closest("a")) setOpen(false);
           }}

@@ -24,20 +24,20 @@ export type FieldsView = {
   edited: string[];
 };
 
-/** Under an inferred field: where the suggestion came from, that it was typed by hand, or the gap with Add. */
-function Below({ value, evidence, onAdd }: { value: string; evidence: string | null; onAdd: () => void }) {
+/** Under an inferred field: where the suggestion came from, that you edited or added it, or the gap with Add. */
+function Below({ value, evidence, edited, onAdd }: { value: string; evidence: string | null; edited: boolean; onAdd: () => void }) {
   if (value && evidence) {
     return (
       <p className="mt-1 text-meta break-words whitespace-pre-line text-ink-muted">
-        <span className="font-medium">{c.basedOn}</span> {evidence}
+        <span className="font-medium text-marker-ink">{c.basedOn}</span> {evidence}
       </p>
     );
   }
-  if (value) return <p className="mt-1 text-meta text-ink-muted">{c.addedByYou}</p>;
+  if (value) return <p className="mt-1 text-meta text-ink-muted">{edited ? c.editedByYou : c.addedByYou}</p>;
   return (
     <p className="mt-1 flex flex-wrap items-center gap-2 text-meta text-ink-muted">
       {c.notEnough}
-      <button type="button" onClick={onAdd} className="h-6 rounded-md border border-line-strong px-2 font-medium text-ink transition-colors hover:bg-sunken pointer-coarse:h-11">
+      <button type="button" onClick={onAdd} className="h-6 rounded-md border border-line-strong px-2 font-medium text-ink transition-colors hover:bg-hover pointer-coarse:h-11">
         {c.add}
       </button>
     </p>
@@ -90,8 +90,8 @@ export function TicketFields({ ticket }: { ticket: FieldsView }) {
         </div>
       </section>
 
-      <section aria-labelledby="suggested" className="border-t border-line pt-5">
-        <h2 id="suggested" className="text-body font-semibold text-ink">
+      <section aria-labelledby="suggested" className="rounded-r-lg border-l-2 border-marker-ink bg-marker-soft py-4 pr-4 pl-4">
+        <h2 id="suggested" className="text-body font-semibold text-marker-ink">
           {c.suggested}
         </h2>
         <p className="mt-0.5 text-meta text-ink-muted">{c.suggestedIntro}</p>
@@ -101,7 +101,9 @@ export function TicketFields({ ticket }: { ticket: FieldsView }) {
             field="expectedResult"
             label={c.fields.expectedResult}
             value={ticket.expectedResult}
-            below={(open) => <Below value={ticket.expectedResult} evidence={ticket.expectedResultEvidence} onAdd={open} />}
+            below={(open) => (
+              <Below value={ticket.expectedResult} evidence={ticket.expectedResultEvidence} edited={ticket.edited.includes("expectedResult")} onAdd={open} />
+            )}
           />
           <EditableField
             {...shared("stepsToReproduce")}
@@ -110,7 +112,9 @@ export function TicketFields({ ticket }: { ticket: FieldsView }) {
             value={ticket.stepsToReproduce}
             hint={c.stepsHint}
             numbered
-            below={(open) => <Below value={ticket.stepsToReproduce} evidence={ticket.stepsToReproduceEvidence} onAdd={open} />}
+            below={(open) => (
+              <Below value={ticket.stepsToReproduce} evidence={ticket.stepsToReproduceEvidence} edited={ticket.edited.includes("stepsToReproduce")} onAdd={open} />
+            )}
           />
         </div>
       </section>

@@ -3,11 +3,17 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema";
+import { POSITIONING } from "@/lib/copy/brand";
 import { clientCopy } from "@/lib/copy/client";
+import { readOfficeHours } from "@/lib/office-hours";
+import { listDemoReports } from "@/lib/reports/demo";
 import { ClientPortal } from "./client-portal";
 
 async function projectBySlug(slug: string) {
-  const [project] = await getDb().select({ name: projects.name }).from(projects).where(eq(projects.slug, slug));
+  const [project] = await getDb()
+    .select({ name: projects.name, demo: projects.demo, officeHours: projects.officeHours })
+    .from(projects)
+    .where(eq(projects.slug, slug));
   return project ?? null;
 }
 
@@ -20,15 +26,26 @@ function developer() {
 
 export async function generateMetadata({ params }: PageProps<"/r/[slug]">): Promise<Metadata> {
   const project = await projectBySlug((await params).slug);
-  return { title: project ? `${clientCopy.pageTitle}: ${project.name}` : "Snag" };
+  return { title: project ? `${clientCopy.pageTitle}: ${project.name}` : "Snag", description: POSITIONING };
 }
 
 // Slug lookup only. An unknown slug is a 404; there is no listing of projects anywhere public.
+// A demo project's reports come along (lib/reports/demo.ts); a real project's never do.
 export default async function ReportPage({ params }: PageProps<"/r/[slug]">) {
   const { slug } = await params;
   const project = await projectBySlug(slug);
   if (!project) notFound();
 
   const { name, email } = developer();
-  return <ClientPortal slug={slug} projectName={project.name} developerName={name} developerEmail={email} />;
+  const demoReports = project.demo ? await listDemoReports(getDb(), slug) : null;
+  return (
+    <ClientPortal
+      slug={slug}
+      projectName={project.name}
+      developerName={name}
+      developerEmail={email}
+      officeHours={readOfficeHours(project.officeHours)}
+      demoReports={demoReports}
+    />
+  );
 }

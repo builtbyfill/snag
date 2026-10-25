@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import { readReportEnv } from "@/lib/env";
 import { runExtraction } from "@/lib/extraction/run";
+import { describeError } from "@/lib/log";
 import { createLocalStorage } from "@/lib/storage";
 import { retryExtraction, type RetryResult } from "@/lib/tickets/retry";
 import { updateTicketField, type UpdateResult } from "@/lib/tickets/update";
@@ -15,14 +16,15 @@ import { updateTicketField, type UpdateResult } from "@/lib/tickets/update";
  */
 export async function retryExtractionAction(ticketId: string): Promise<RetryResult> {
   await requireSession();
+  // Read before the ticket turns pending: an env problem must not leave it stuck there.
+  const storage = createLocalStorage(readReportEnv().UPLOAD_DIR);
   const result = await retryExtraction(getDb(), ticketId);
   if (result.ok) {
-    const storage = createLocalStorage(readReportEnv().UPLOAD_DIR);
     after(async () => {
       try {
         await runExtraction(ticketId, { db: getDb(), storage });
       } catch (error) {
-        console.error(`runExtraction failed for ticket ${ticketId}`, error);
+        console.error(`runExtraction failed for ticket ${ticketId}: ${describeError(error)}`);
       }
     });
   }

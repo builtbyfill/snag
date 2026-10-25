@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import sharp, { type Metadata } from 'sharp';
 import { z } from 'zod';
-import { hashIp, reportLimitHit } from '@/lib/auth/rate-limit';
+import { globalLimitHit, hashIp, reportLimitHit } from '@/lib/auth/rate-limit';
 import type { Db } from '@/lib/db/client';
+import { describeError } from '@/lib/log';
 import { attachments, projects, tickets } from '@/lib/db/schema';
 import type { Storage } from '@/lib/storage';
 import { MAX_BYTES, MAX_EDGE_PX, SENTENCE_MAX, SENTENCE_MIN, type ReportErrorCode } from './validate';
@@ -61,6 +62,7 @@ export async function submitReport(deps: SubmitDeps, input: SubmitInput): Promis
 
   const ipHash = hashIp(input.ip, deps.ipHashSecret);
   if (await reportLimitHit(deps.db, ipHash, deps.now?.())) return fail('rateLimited', 'form');
+  if (await globalLimitHit(deps.db, deps.now?.())) return fail('rateLimited', 'form');
 
   const ticketId = randomUUID();
   const storageKey = `${project.id}/${ticketId}.${format.ext}`;
@@ -74,7 +76,7 @@ export async function submitReport(deps: SubmitDeps, input: SubmitInput): Promis
       });
     });
   } catch (error) {
-    console.error('submitReport: saving failed', error); // details stay in the server log
+    console.error(`submitReport: saving failed: ${describeError(error)}`);
     return fail('server', 'form');
   }
   return { ok: true, ticketId };

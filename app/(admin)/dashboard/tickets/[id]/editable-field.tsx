@@ -68,6 +68,8 @@ export function EditableField({
     el.style.height = `${el.scrollHeight}px`;
   }, [editing, text, ref]);
   useEffect(() => () => clearTimeout(timer.current), []);
+  // After a keyboard exit the textarea is gone; put focus on the button that replaced it.
+  const refocus = () => requestAnimationFrame(() => document.getElementById(id)?.focus());
 
   async function save() {
     setEditing(false);
@@ -100,12 +102,17 @@ export function EditableField({
   return (
     <div className={cn("group/field", className)}>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <label htmlFor={id} className={cn("text-meta font-medium text-ink-secondary", large && "sr-only")}>
+        <label id={`${id}-label`} htmlFor={id} className={cn("text-meta font-medium text-ink-secondary", large && "sr-only")}>
           {label}
         </label>
         {edited && (
           <span className="rounded-md bg-sunken px-1.5 text-meta text-ink-secondary" title={aiText ?? undefined}>
             {c.edited}
+          </span>
+        )}
+        {edited && aiText && (
+          <span id={`${id}-edited`} className="sr-only">
+            {`${c.edited}. ${aiText}`}
           </span>
         )}
         {state === "saved" && (
@@ -131,10 +138,12 @@ export function EditableField({
             if (event.key === "Escape") {
               event.stopPropagation();
               event.currentTarget.blur();
+              refocus();
             }
             if (event.key === "Enter" && !event.shiftKey && !numbered && field !== "actualResult" && field !== "expectedResult") {
               event.preventDefault();
               event.currentTarget.blur();
+              refocus();
             }
           }}
           className={cn(
@@ -147,14 +156,15 @@ export function EditableField({
           type="button"
           id={id}
           onClick={() => setEditing(true)}
-          aria-label={`${label}${edited && aiText ? `. ${c.edited}. ${aiText}` : ""}`}
+          aria-labelledby={`${id}-label ${id}-value`}
+          aria-describedby={edited && aiText ? `${id}-edited` : undefined}
           className={cn(
-            "-mx-2 flex w-[calc(100%+1rem)] items-start gap-2 rounded-lg border border-transparent px-2 py-1 text-left transition-colors hover:border-line hover:bg-sunken/60 focus-visible:border-line-strong",
+            "-mx-2 flex w-[calc(100%+1rem)] items-start gap-2 rounded-lg border border-transparent px-2 py-1 text-left transition-colors hover:border-line hover:bg-hover focus-visible:border-line-strong",
             large ? "text-display" : "mt-0.5 text-body",
             empty ? "text-ink-muted" : "text-ink",
           )}
         >
-          <span className="min-w-0 flex-1 break-words whitespace-pre-line">
+          <span id={`${id}-value`} className="min-w-0 flex-1 break-words whitespace-pre-line">
             {empty ? (
               placeholder
             ) : numbered ? (

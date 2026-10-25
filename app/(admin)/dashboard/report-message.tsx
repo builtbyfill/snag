@@ -24,7 +24,7 @@ export function ReportMessage({ card, client }: { card: CardView; client: Thread
             <span className="text-ink-muted">{card.sentAt}</span>
           </p>
           {card.thumb && (
-            // Screenshots are light: a raised frame keeps them from glaring on the dark page. The
+            // A 1px frame on white sets the screenshot off the page. The
             // thumbnail opens the ticket too; the card is the keyboard's stop, so this one isn't.
             <Link href={card.href} tabIndex={-1} className="mt-1.5 block w-fit max-w-full rounded-xl border border-line-medium bg-surface p-1 transition-colors hover:border-line-strong">
               {/* eslint-disable-next-line @next/next/no-img-element -- authenticated route, sized thumbnails */}
@@ -52,7 +52,7 @@ export function ReportMessage({ card, client }: { card: CardView; client: Thread
 
       <div className="flex gap-3">
         <span aria-hidden className="flex size-8 shrink-0 items-start justify-center pt-2">
-          <SnagMark className="size-5 text-ink-muted [--snag-mark-cut:var(--canvas)]" />
+          <SnagMark className="size-5 text-lime [--snag-mark-cut:var(--chrome)]" />
         </span>
         <div className="min-w-0 flex-1">
           <TicketCard card={card} />

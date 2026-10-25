@@ -27,14 +27,15 @@ export function RetryButton({ ticketId, className }: { ticketId: string; classNa
           setProblem(false);
           startRetry(async () => {
             try {
-              await retryExtractionAction(ticketId);
+              const result = await retryExtractionAction(ticketId);
+              if (!result.ok) setProblem(true);
               router.refresh();
             } catch {
               setProblem(true);
             }
           });
         }}
-        className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-canvas px-3 text-meta font-medium text-ink transition-colors hover:bg-sunken disabled:opacity-60 pointer-coarse:h-11"
+        className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-canvas px-3 text-meta font-medium text-ink transition-colors hover:bg-hover disabled:opacity-60 pointer-coarse:h-11"
       >
         {retrying ? <Spinner className="size-3.5" aria-hidden /> : <RotateCcwIcon className="size-3.5" aria-hidden />}
         {retrying ? c.retrying : c.retry}

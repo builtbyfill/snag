@@ -93,6 +93,12 @@ describe('ticketToMarkdown', () => {
     );
   });
 
+  it('keeps the heading on one line when the title has a line break in it', () => {
+    const [heading, next] = ticketToMarkdown({ ...extracted, title: 'Next button\n  does nothing' }).split('\n');
+    expect(heading).toBe('## SN-14: Next button does nothing');
+    expect(next).toMatch(/^\*\*Where:\*\*/);
+  });
+
   it('keeps a long sentence title short, and a multi-line sentence inside the quote', () => {
     const sentence = `${'The payment page shows an error after I enter my card '.repeat(3)}\nand then it logs me out.`;
     const markdown = ticketToMarkdown({ ...extracted, title: null, clientSentence: sentence });

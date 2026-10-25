@@ -7,6 +7,7 @@ import { StatusGlyph } from "@/components/status-glyph";
 import { requireSession } from "@/lib/auth/session";
 import { adminCopy, fillIn } from "@/lib/copy/admin";
 import { getDb } from "@/lib/db/client";
+import { confidenceText } from "@/lib/tickets/confidence";
 import { ticketToMarkdown } from "@/lib/tickets/markdown";
 import { getTicket } from "@/lib/tickets/queries";
 import { dateTime } from "@/lib/tickets/recency";
@@ -87,15 +88,15 @@ export default async function TicketPage({
   const pending = ticket.extractionState === "pending";
   const extracted = ticket.extractionState === "extracted";
   const failed = ticket.extractionState === "extraction_failed";
-  const confidenceLow = ticket.confidence !== null && ticket.confidence < 0.6;
+  const confidence = ticket.confidence !== null ? confidenceText(ticket.confidence, { low: adminCopy.card.low, high: adminCopy.card.high }) : null;
   const edits = ticket.editCount === 0 ? c.editCount.none : ticket.editCount === 1 ? c.editCount.one : fillIn(c.editCount.many, { count: ticket.editCount });
 
   return (
-    <main className="relative flex h-full min-h-0 flex-col overflow-y-auto bg-canvas">
+    <main tabIndex={-1} className="relative flex h-full min-h-0 flex-col overflow-y-auto bg-canvas outline-none">
       <EscapeTo href={back} />
       {pending && <RefreshWhilePending />}
       <div className="sticky top-0 z-20 flex h-[52px] shrink-0 items-center border-b border-line bg-canvas px-2 md:px-4">
-        <Link href={back} className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-meta font-medium text-ink-secondary transition-colors hover:bg-sunken hover:text-ink pointer-coarse:h-11">
+        <Link href={back} className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-meta font-medium text-ink-secondary transition-colors hover:bg-hover hover:text-ink pointer-coarse:h-11">
           <ArrowLeftIcon className="size-4" aria-hidden />
           {c.back}
         </Link>
@@ -133,15 +134,17 @@ export default async function TicketPage({
               {adminCopy.card.priority[ticket.priority]}
             </span>
           )}
-          {extracted && ticket.confidence !== null && (
+          {extracted && confidence && (
             <span className="font-mono text-ink-muted">
-              {fillIn(adminCopy.card.confidence, { value: ticket.confidence.toFixed(2) })}
-              {confidenceLow && ` · ${adminCopy.card.low}`}
+              <span className="sr-only">{fillIn(adminCopy.card.confidence, { value: confidence.number, level: confidence.word })}</span>
+              <span aria-hidden>
+                {confidence.number} · <span className={confidence.level === "low" ? "text-marker-ink" : undefined}>{confidence.word}</span>
+              </span>
             </span>
           )}
           {failed && <span className="text-danger">{c.state.extraction_failed}</span>}
           {ticket.askClient && (
-            <span title={adminCopy.card.askClientHint} className="inline-flex h-6 items-center gap-1 rounded-full border border-line-strong px-2 font-medium text-ink">
+            <span title={adminCopy.card.askClientHint} className="inline-flex h-5 cursor-default items-center gap-1 rounded-[4px] border border-marker-ink px-1.5 font-medium text-marker-ink">
               <MessageCircleQuestionIcon className="size-3.5" aria-hidden />
               {adminCopy.card.askClient}
               <span className="sr-only">. {adminCopy.card.askClientHint}</span>

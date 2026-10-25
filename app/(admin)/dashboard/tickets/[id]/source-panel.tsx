@@ -32,7 +32,7 @@ export function SourcePanel({ source }: { source: Source }) {
             type="button"
             onClick={() => dialogRef.current?.showModal()}
             aria-label={c.openScreenshot}
-            className="block cursor-zoom-in rounded-lg transition-opacity hover:opacity-90"
+            className="block cursor-zoom-in rounded-xl border border-line-medium bg-surface p-1 transition-opacity hover:opacity-90"
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- authenticated route, sized thumbnails */}
             <img
@@ -69,14 +69,14 @@ export function SourcePanel({ source }: { source: Source }) {
           aria-label={alt}
           onClick={(event) => event.target === event.currentTarget && event.currentTarget.close()}
           onClose={() => openerRef.current?.focus()}
-          className="m-auto max-h-[92dvh] max-w-[min(92vw,1100px)] overflow-hidden rounded-xl border border-line-medium bg-surface p-0 text-ink backdrop:bg-black/80"
+          className="m-auto max-h-[92dvh] max-w-[min(92vw,1100px)] overflow-hidden rounded-xl border border-line-medium bg-surface p-0 text-ink backdrop:bg-sunken/90"
         >
           <div className="flex justify-end border-b border-line p-1">
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
               aria-label={c.closeScreenshot}
-              className="flex size-9 items-center justify-center rounded-md text-ink-secondary transition-colors hover:bg-sunken hover:text-ink pointer-coarse:size-11"
+              className="flex size-9 items-center justify-center rounded-md text-ink-secondary transition-colors hover:bg-hover hover:text-ink pointer-coarse:size-11"
             >
               <XIcon className="size-5" aria-hidden />
             </button>

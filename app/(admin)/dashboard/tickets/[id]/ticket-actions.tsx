@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckIcon, ClipboardCopyIcon } from "lucide-react";
+import { TYPING_OR_MENU } from "@/app/(admin)/dashboard/escape-to";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { updateTicketFieldAction } from "@/app/actions/tickets";
@@ -70,11 +71,11 @@ export function TicketActions({
     );
   }
 
-  // `c` copies, unless a field has the keyboard.
+  // `c` copies while focus is in the ticket, unless a field, menu or dialog has the keyboard.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== "c" || event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;
-      if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select, dialog")) return;
+      if (!(event.target instanceof HTMLElement) || !event.target.closest("main") || event.target.closest(TYPING_OR_MENU)) return;
       event.preventDefault();
       copy();
     }
@@ -112,7 +113,7 @@ export function TicketActions({
       <button
         type="button"
         onClick={copy}
-        className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong px-3 text-meta font-medium text-ink transition-colors hover:bg-sunken pointer-coarse:h-11"
+        className="flex h-8 items-center gap-1.5 rounded-lg border border-line-strong px-3 text-meta font-medium text-ink transition-colors hover:bg-hover pointer-coarse:h-11"
       >
         {copied ? <CheckIcon className="size-3.5 animate-pop" aria-hidden /> : <ClipboardCopyIcon className="size-3.5" aria-hidden />}
         {copied ? c.copied : c.copyMarkdown}

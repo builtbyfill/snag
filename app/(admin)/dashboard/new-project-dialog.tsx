@@ -2,7 +2,7 @@
 
 import { CircleAlertIcon, PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useId, useRef } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 import { createProjectAction, type NewProjectState } from "@/app/actions/projects";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -32,6 +32,9 @@ export function NewProjectDialog({ variant = "row" }: { variant?: "row" | "butto
     }
     return next;
   }, initial);
+  // The action state outlives the dialog; an error already shown stays hidden after closing.
+  const [dismissed, setDismissed] = useState<NewProjectState | null>(null);
+  const error = state === dismissed ? null : state.error;
 
   return (
     <>
@@ -39,7 +42,7 @@ export function NewProjectDialog({ variant = "row" }: { variant?: "row" | "butto
         <button
           type="button"
           onClick={() => dialogRef.current?.showModal()}
-          className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-body text-ink-secondary transition-colors hover:bg-sunken hover:text-ink pointer-coarse:h-11"
+          className="flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-body text-ink-secondary transition-colors hover:bg-hover hover:text-ink pointer-coarse:h-11"
         >
           <PlusIcon className="size-4 shrink-0" aria-hidden />
           {c.title}
@@ -59,8 +62,11 @@ export function NewProjectDialog({ variant = "row" }: { variant?: "row" | "butto
         ref={dialogRef}
         data-zoom
         aria-labelledby={`${fieldId}-title`}
-        onClose={() => formRef.current?.reset()}
-        className="m-auto w-[min(92vw,400px)] rounded-xl border border-line-medium bg-surface p-0 text-ink backdrop:bg-black/60"
+        onClose={() => {
+          formRef.current?.reset();
+          setDismissed(state);
+        }}
+        className="m-auto w-[min(92vw,400px)] rounded-xl border border-line-medium bg-surface p-0 text-ink backdrop:bg-sunken/80"
       >
         <form ref={formRef} action={formAction} aria-busy={pending} className="flex flex-col p-5">
           <h2 id={`${fieldId}-title`} className="text-title text-ink">
@@ -75,17 +81,17 @@ export function NewProjectDialog({ variant = "row" }: { variant?: "row" | "butto
             autoComplete="off"
             maxLength={60}
             autoFocus
-            aria-invalid={state.error ? true : undefined}
-            aria-describedby={state.error ? `${errorId} ${hintId}` : hintId}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${errorId} ${hintId}` : hintId}
             className={cn(
               "h-10 w-full rounded-lg border bg-sunken px-3 text-body text-ink pointer-coarse:h-11",
-              state.error ? "border-2 border-ink px-[11px]" : "border-line-strong",
+              error ? "border-2 border-ink px-[11px]" : "border-line-strong",
             )}
           />
-          {state.error && (
+          {error && (
             <p id={errorId} role="alert" className="mt-2 flex items-start gap-2 text-meta font-medium text-ink">
               <CircleAlertIcon className="mt-px size-4 shrink-0" aria-hidden />
-              {c.errors[state.error]}
+              {c.errors[error]}
             </p>
           )}
           <p id={hintId} className="mt-2 text-meta text-ink-muted">
@@ -96,7 +102,7 @@ export function NewProjectDialog({ variant = "row" }: { variant?: "row" | "butto
               type="button"
               variant="ghost"
               onClick={() => dialogRef.current?.close()}
-              className="h-9 rounded-lg px-3.5 text-body text-ink-secondary hover:bg-sunken hover:text-ink pointer-coarse:h-11"
+              className="h-9 rounded-lg px-3.5 text-body text-ink-secondary hover:bg-hover hover:text-ink pointer-coarse:h-11"
             >
               {c.cancel}
             </Button>

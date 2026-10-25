@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { clientIp } from "@/lib/auth/rate-limit";
+import { describeError } from "@/lib/log";
 import { getDb } from "@/lib/db/client";
 import { readReportEnv } from "@/lib/env";
 import { runExtraction } from "@/lib/extraction/run";
@@ -38,14 +39,14 @@ export async function submitReportAction(slug: string, formData: FormData): Prom
         try {
           await runExtraction(ticketId, { db: getDb(), storage });
         } catch (error) {
-          console.error(`runExtraction failed for ticket ${ticketId}`, error);
+          console.error(`runExtraction failed for ticket ${ticketId}: ${describeError(error)}`);
         }
       });
     }
     // The ticket id goes back so this device can keep its own history and ask for its status later.
     return result.ok ? { ok: true, ticketId: result.ticketId } : { ok: false, error: result.error, field: result.field };
   } catch (error) {
-    console.error("submitReportAction failed", error);
+    console.error(`submitReportAction failed: ${describeError(error)}`);
     return { ok: false, error: "server", field: "form" };
   }
 }
@@ -58,7 +59,7 @@ export async function getReportStatusesAction(slug: string, ids: string[]): Prom
   try {
     return await getReportStatuses(getDb(), slug, ids);
   } catch (error) {
-    console.error("getReportStatusesAction failed", error);
+    console.error(`getReportStatusesAction failed: ${describeError(error)}`);
     return [];
   }
 }
@@ -75,7 +76,7 @@ export async function addFollowUpAction(slug: string, ticketId: string, body: st
       { slug, ticketId, body, ip: clientIp(await headers()) },
     );
   } catch (error) {
-    console.error("addFollowUpAction failed", error);
+    console.error(`addFollowUpAction failed: ${describeError(error)}`);
     return { ok: false, error: "server" };
   }
 }

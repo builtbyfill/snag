@@ -11,12 +11,16 @@ export type LoginResult = { ok: true; token: string } | { ok: false; error: Logi
  */
 export function attemptLogin(
   input: unknown,
-  ctx: { env: Pick<AuthEnv, 'ADMIN_SECRET' | 'SESSION_SECRET'>; ip: string; limiter: LoginLimiter; now?: number },
+  ctx: { env: Pick<AuthEnv, 'ADMIN_SECRET' | 'SESSION_SECRET' | 'DEMO_ACCESS_CODE'>; ip: string; limiter: LoginLimiter; now?: number },
 ): LoginResult {
   const now = ctx.now ?? Date.now();
   if (ctx.limiter.isLocked(ctx.ip, now)) return { ok: false, error: 'locked' };
 
-  if (typeof input !== 'string' || !accessCodeMatches(input, ctx.env.ADMIN_SECRET)) {
+  // The developer's code or, when set, the judges' demo code. Both are always compared, so the
+  // time taken doesn't tell which one matched.
+  const codes = [ctx.env.ADMIN_SECRET, ctx.env.DEMO_ACCESS_CODE].filter((code): code is string => Boolean(code));
+  const matches = typeof input === 'string' && codes.map((code) => accessCodeMatches(input, code)).includes(true);
+  if (!matches) {
     // The log says that it happened, not who: no address, no attempted code.
     if (ctx.limiter.recordFailure(ctx.ip, now)) console.warn('Login locked for one address after 5 failed attempts in 15 minutes.');
     return { ok: false, error: 'mismatch' };

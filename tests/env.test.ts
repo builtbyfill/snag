@@ -104,6 +104,19 @@ describe('readAuthEnv', () => {
     }
   });
 
+  it('drops a trailing slash from APP_URL, so report links have one slash', async () => {
+    const { readAuthEnv } = await import('@/lib/env');
+    expect(readAuthEnv({ ...valid, APP_URL: 'https://snag.example/' }).APP_URL).toBe('https://snag.example');
+  });
+
+  it('reads an optional DEMO_ACCESS_CODE: empty means off, short or equal to another secret is refused', async () => {
+    const { readAuthEnv } = await import('@/lib/env');
+    expect(readAuthEnv({ ...valid, DEMO_ACCESS_CODE: '' }).DEMO_ACCESS_CODE).toBeUndefined();
+    expect(readAuthEnv({ ...valid, DEMO_ACCESS_CODE: 'judges-code-for-tests' }).DEMO_ACCESS_CODE).toBe('judges-code-for-tests');
+    expect(() => readAuthEnv({ ...valid, DEMO_ACCESS_CODE: 'too-short' })).toThrow(/DEMO_ACCESS_CODE: must be at least 16 characters/);
+    expect(() => readAuthEnv({ ...valid, DEMO_ACCESS_CODE: valid.ADMIN_SECRET })).toThrow(/DEMO_ACCESS_CODE: must differ from ADMIN_SECRET/);
+  });
+
   it('rejects an APP_URL that is not a URL', async () => {
     const { readAuthEnv } = await import('@/lib/env');
     expect(() => readAuthEnv({ ...valid, APP_URL: 'localhost' })).toThrow(/APP_URL/);

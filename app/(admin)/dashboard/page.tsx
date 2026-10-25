@@ -8,12 +8,11 @@ import { getClient, hasProjects, listClients, listThread, type ThreadTicket } fr
 import { dateTime, recencyGroup, relativeTime } from "@/lib/tickets/recency";
 import { initials } from "@/lib/utils";
 import { ClientsColumn } from "./clients-column";
+import { confidenceLevel } from "@/lib/tickets/confidence";
 import { dashboardHref, readQuery } from "./href";
 import { Thread } from "./thread";
 import type { CardView, ClientRowView, DashboardQuery, TabCounts } from "./types";
 
-// The confidence below which the database flags Ask client (lib/db/schema.ts, `ask_client`).
-const ASK_CLIENT_CONFIDENCE = 0.6;
 const THUMB_MAX_WIDTH = 280;
 const THUMB_MAX_HEIGHT = 240;
 
@@ -43,7 +42,7 @@ function toCard(t: ThreadTicket, q: DashboardQuery, now: Date): CardView {
     extractionState: t.extractionState,
     interrupted: t.failedReason === "interrupted_by_restart",
     confidence: t.extractionState === "extracted" && t.confidence !== null ? t.confidence.toFixed(2) : null,
-    confidenceLow: t.confidence !== null && t.confidence < ASK_CLIENT_CONFIDENCE,
+    confidenceLow: t.confidence !== null && confidenceLevel(t.confidence) === 'low',
     title: t.title,
     actualResult: t.actualResult,
     priority: t.priority,

@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The Snag mark: a chat bubble holding a hook. To snag is to catch; the bubble is where the
- * client's report arrives. One color (currentColor), readable from 20px up.
+ * The Snag mark: a rounded tile holding a fish hook. To snag is to catch. The tile takes
+ * currentColor (lime), the hook takes --snag-mark-cut (the ink frame). The hook is centred on the
+ * tile and drawn heavy enough to read as a hook from 20px up: eye, shank, bend, point with a barb.
  */
 export function SnagMark({ className, title }: { className?: string; title?: string }) {
+  const hook = "var(--snag-mark-cut, var(--chrome, #121214))";
   return (
     <svg
       viewBox="0 0 32 32"
@@ -13,20 +15,20 @@ export function SnagMark({ className, title }: { className?: string; title?: str
       aria-hidden={title ? undefined : true}
       aria-label={title}
     >
+      <rect width="32" height="32" rx="8" fill="currentColor" />
+      {/* Eye */}
+      <circle cx="19.5" cy="8.6" r="2.3" fill="none" stroke={hook} strokeWidth="2.2" />
+      {/* Shank, bend and point */}
       <path
-        fill="currentColor"
-        d="M7 3h18a5 5 0 0 1 5 5v11a5 5 0 0 1-5 5H14.5l-6.2 5.1A1 1 0 0 1 6.7 28.3V24H7a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5z"
-      />
-      {/* The hook: eye, shank, bend, and a point with its barb. */}
-      <circle cx="18.6" cy="7.4" r="1.7" fill="none" stroke="var(--snag-mark-cut, var(--surface, #fff))" strokeWidth="1.8" />
-      <path
+        d="M19.5 10.9V19.6a5.1 5.1 0 0 1-10.2 0V15.4"
         fill="none"
-        stroke="var(--snag-mark-cut, var(--surface, #fff))"
-        strokeWidth="2.4"
+        stroke={hook}
+        strokeWidth="2.6"
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M18.6 9.6v5.4a3.9 3.9 0 0 1-7.8 0v-4.2m0 0 2.4 2.4"
       />
+      {/* Barb */}
+      <path d="M9.3 15.4l3.1 3.1" fill="none" stroke={hook} strokeWidth="2.4" strokeLinecap="round" />
     </svg>
   );
 }

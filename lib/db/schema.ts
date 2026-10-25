@@ -2,6 +2,7 @@
 // split is ADR 0001. Every migration is generated from this file (`npm run db:generate`), read,
 // then applied with `npm run db:migrate`. `drizzle-kit push` is never used.
 import { sql } from 'drizzle-orm';
+import type { OfficeHours } from '@/lib/office-hours';
 import {
   boolean, index, integer, jsonb, pgEnum, pgTable, real, text, timestamp, uniqueIndex, uuid, varchar,
 } from 'drizzle-orm/pg-core';
@@ -19,6 +20,12 @@ export const projects = pgTable('projects', {
   name: text('name').notNull(),
   slug: varchar('slug', { length: 21 }).notNull(),
   ownerId: uuid('owner_id'), // nullable, no FK yet (Later: real auth fills it with an UPDATE)
+  // Demo projects (the seed for judges, Filip 2026-10-25): their client page shows every report of
+  // the project, not only this device's. Never set for a real project.
+  demo: boolean('demo').notNull().default(false),
+  // When the developer replies, for the client page's header; null means the default (Mon–Fri
+  // 9–17, lib/office-hours.ts). The demo seed sets every day, all day.
+  officeHours: jsonb('office_hours').$type<OfficeHours>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex('projects_slug_idx').on(t.slug),

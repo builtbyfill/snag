@@ -5,6 +5,8 @@ import {
   FOLLOW_UP_LIMIT,
   HISTORY_LIMIT,
   historyKey,
+  legacyHistoryKey,
+  moveLegacyHistory,
   readHistory,
   type HistoryEntry,
 } from '@/lib/reports/history';
@@ -16,6 +18,9 @@ class MemoryStorage {
   }
   setItem(key: string, value: string): void {
     this.items.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.items.delete(key);
   }
 }
 
@@ -51,8 +56,12 @@ afterEach(() => {
 });
 
 describe('historyKey', () => {
-  it('namespaces by version and slug', () => {
-    expect(historyKey(SLUG)).toBe('snag:reports:v1:acme-x7k2');
+  it('is "snag:<slug>", one key per project link', () => {
+    expect(historyKey('acme-x7k2')).toBe('snag:acme-x7k2');
+  });
+
+  it('keeps the old key apart, for the one-time move', () => {
+    expect(legacyHistoryKey(SLUG)).toBe('snag:reports:v1:acme-x7k2');
   });
 });
 
@@ -236,5 +245,54 @@ describe('addFollowUpToHistory (text a client added to a report from this device
     const storage = new MemoryStorage();
     storage.setItem(historyKey(SLUG), JSON.stringify([entry(1)]));
     expect(readHistory(SLUG, storage)).toEqual([entry(1)]);
+  });
+});
+
+describe('history kept in memory when storage refuses writes', () => {
+  it('a second report is added to the list the page shows, not to the empty storage', () => {
+    const storage = new ThrowingStorage();
+    const first = addToHistory(SLUG, entry(1), storage);
+    const second = addToHistory(SLUG, entry(2), storage, first.entries);
+    expect(second).toEqual({ ok: false, entries: [entry(1), entry(2)] });
+  });
+
+  it('a follow-up finds the report in the list the page shows', () => {
+    const storage = new ThrowingStorage();
+    const first = addToHistory(SLUG, entry(1), storage);
+    const fu = { id: '10000000-0000-4000-8000-000000000001', body: 'Still broken.', sentAt: '2026-10-25T10:00:00.000Z' };
+    const result = addFollowUpToHistory(SLUG, entry(1).ticketId, fu, storage, first.entries);
+    expect(result).toEqual({ ok: false, entries: [{ ...entry(1), followUps: [fu] }] });
+  });
+});
+
+describe('one key per project link', () => {
+  it('ignores other keys on the same origin: other projects, other apps, and anything else under snag:', () => {
+    const storage = new MemoryStorage();
+    storage.items.set('snag:other-slug', JSON.stringify([entry(1)]));
+    storage.items.set('snag:acme-x7k2:draft', 'a draft');
+    storage.items.set('otherapp:state', JSON.stringify([entry(2)]));
+    expect(readHistory(SLUG, storage)).toEqual([]);
+    addToHistory(SLUG, entry(3), storage);
+    expect(readHistory(SLUG, storage)).toEqual([entry(3)]);
+    expect(readHistory('other-slug', storage)).toEqual([entry(1)]);
+  });
+
+  it('moves a history stored under the old key to the new one, once, without overwriting a newer one', () => {
+    const storage = new MemoryStorage();
+    storage.items.set(legacyHistoryKey(SLUG), JSON.stringify([entry(1)]));
+    expect(readHistory(SLUG, storage)).toEqual([]);
+    expect(moveLegacyHistory(SLUG, storage)).toBe(true);
+    expect(readHistory(SLUG, storage)).toEqual([entry(1)]);
+    expect(storage.items.has(legacyHistoryKey(SLUG))).toBe(false);
+    expect(moveLegacyHistory(SLUG, storage)).toBe(false);
+
+    storage.items.set(legacyHistoryKey(SLUG), JSON.stringify([entry(2)]));
+    expect(moveLegacyHistory(SLUG, storage)).toBe(true);
+    expect(readHistory(SLUG, storage)).toEqual([entry(1)]); // the newer history under the new key wins
+    expect(storage.items.has(legacyHistoryKey(SLUG))).toBe(false);
+  });
+
+  it('does nothing without storage', () => {
+    expect(moveLegacyHistory(SLUG, null)).toBe(false);
   });
 });

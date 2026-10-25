@@ -4,6 +4,8 @@ import type { Db } from '@/lib/db/client';
 import { tickets } from '@/lib/db/schema';
 
 export const REPORTS_PER_HOUR = 10;
+/** Across every project and address: the most extractions the app will start in an hour. */
+export const GLOBAL_REPORTS_PER_HOUR = 60;
 
 /**
  * HMAC-SHA256 of the IP, keyed with IP_HASH_SECRET. A plain SHA-256 of an IPv4 address could be
@@ -32,6 +34,17 @@ export async function reportLimitHit(db: Db, ipHash: string, now: Date = new Dat
     .from(tickets)
     .where(and(eq(tickets.reporterIpHash, ipHash), gt(tickets.createdAt, since)));
   return row.n >= REPORTS_PER_HOUR;
+}
+
+/**
+ * True when GLOBAL_REPORTS_PER_HOUR reports already arrived in the last hour, whoever sent them.
+ * The per-address limit keys on a header a client can set when the app isn't behind the proxy,
+ * so this caps what a spoofed address can cost in API credits.
+ */
+export async function globalLimitHit(db: Db, now: Date = new Date()): Promise<boolean> {
+  const since = new Date(now.getTime() - 60 * 60 * 1000);
+  const [row] = await db.select({ n: count() }).from(tickets).where(gt(tickets.createdAt, since));
+  return row.n >= GLOBAL_REPORTS_PER_HOUR;
 }
 
 export const LOGIN_FAILURES_ALLOWED = 5;

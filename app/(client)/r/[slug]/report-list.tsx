@@ -4,17 +4,20 @@ import { PlusIcon } from "lucide-react";
 import { DateTile } from "@/components/date-tile";
 import { StatusGlyph, type TicketStatus } from "@/components/status-glyph";
 import type { ClientCopy } from "@/lib/copy/client";
-import { groupReports } from "@/lib/reports/groups";
+import { groupByStatus } from "@/lib/reports/groups";
 import type { HistoryEntry } from "@/lib/reports/history";
 import { cn } from "@/lib/utils";
 
-// The selection mark for a report row: the selected shade, with a 2px ink bar on its left edge.
+// The selection mark for a report row: white on the list pane, a 3px lime bar with a 1px ink line.
 const current =
-  "bg-selected before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-ink";
+  "bg-selected before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-l-full before:bg-lime after:absolute after:inset-y-2 after:left-[3px] after:w-px after:bg-ink";
+
+const GROUPS: TicketStatus[] = ["new", "in_progress", "done"];
 
 /**
- * This device's reports, grouped In progress / Done like a support portal, newest first.
- * "New report" stays pinned on top. The left pane on wide screens; a sheet from the bar below.
+ * The reports in this feed, grouped Received / In progress / Done, newest first in each. "New
+ * report" stays pinned on top and puts the cursor in the composer. The left pane on wide screens;
+ * a sheet from the bar below.
  */
 export function ReportList({
   history,
@@ -29,7 +32,7 @@ export function ReportList({
   copy: ClientCopy;
   onSelect: (ticketId: string | null) => void;
 }) {
-  const { open, done } = groupReports(history, statuses);
+  const groups = groupByStatus(history, statuses);
 
   return (
     <nav aria-label={copy.list.title} className="flex flex-col gap-4 p-3">
@@ -37,15 +40,21 @@ export function ReportList({
       <button
         type="button"
         onClick={() => onSelect(null)}
-        aria-current={selectedId === null ? "true" : undefined}
-        className="flex h-9 items-center gap-2 rounded-md border border-line-strong bg-surface px-3 text-body font-medium text-ink transition-colors duration-(--motion-fast) hover:bg-sunken active:translate-y-px pointer-coarse:h-11"
+        className="flex h-9 items-center gap-2 rounded-md border border-line-strong bg-surface px-3 text-body font-medium text-ink transition-colors duration-(--motion-fast) hover:bg-hover active:translate-y-px pointer-coarse:h-11"
       >
         <PlusIcon className="size-4" aria-hidden />
         {copy.list.newReport}
       </button>
 
-      <Group label={copy.list.groups.open} entries={open} {...{ statuses, selectedId, copy, onSelect }} />
-      <Group label={copy.list.groups.done} entries={done} muted {...{ statuses, selectedId, copy, onSelect }} />
+      {GROUPS.map((group) => (
+        <Group
+          key={group}
+          label={copy.status[group]}
+          entries={groups[group]}
+          muted={group === "done"}
+          {...{ statuses, selectedId, copy, onSelect }}
+        />
+      ))}
     </nav>
   );
 }
@@ -86,7 +95,7 @@ function Group({
                 aria-current={selected ? "true" : undefined}
                 className={cn(
                   "relative flex min-h-14 w-full items-center gap-3 rounded-md px-2 py-1.5 text-left",
-                  "transition-colors duration-(--motion-fast) hover:bg-sunken",
+                  "transition-colors duration-(--motion-fast) hover:bg-hover",
                   selected && current,
                 )}
               >

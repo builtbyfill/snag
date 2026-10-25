@@ -27,8 +27,9 @@ export type RunResult =
  *   overwritten, and copies `confidence` and `language` (ask_client is computed from them).
  * - Writes one `extractions` row per attempt, numbered after any earlier attempts.
  * - Model, network and file problems end in `extraction_failed` with the error kept and
- *   `failed_reason = 'extraction_error'`. Only a database failure throws; the caller logs it, and
- *   the ticket stays `pending` until the start-up sweep below marks it.
+ *   `failed_reason = 'extraction_error'`. Only a database failure throws; the caller logs it. The
+ *   ticket is then marked failed if that smaller write succeeds, else it stays `pending` until
+ *   the start-up sweep below marks it.
  */
 export async function runExtraction(ticketId: string, deps: RunDeps): Promise<RunResult> {
   const [report] = await deps.db
@@ -49,7 +50,23 @@ export async function runExtraction(ticketId: string, deps: RunDeps): Promise<Ru
     outcome = { ok: false, error: `Couldn't read the screenshot or start the extraction: ${(error as Error).message}`, attempts: [] };
   }
 
-  return deps.db.transaction(async (tx) => {
+  try {
+    return await writeOutcome(ticketId, outcome, deps.db);
+  } catch (error) {
+    // Nothing of the outcome was written. Marking the ticket failed is a second, smaller write
+    // that may well succeed (the first may have failed on the extractions rows), and it gives
+    // the developer a Retry button instead of a spinner that only a restart ends.
+    const reason = (error as Error).message.split('\n')[0];
+    await deps.db.update(tickets)
+      .set({ extractionState: 'extraction_failed', failedReason: 'extraction_error', extractionError: `Couldn't save the result: ${reason}`, updatedAt: new Date() })
+      .where(and(eq(tickets.id, ticketId), eq(tickets.extractionState, 'pending')))
+      .catch(() => {});
+    throw error;
+  }
+}
+
+function writeOutcome(ticketId: string, outcome: ExtractionOutcome, db: Db): Promise<RunResult> {
+  return db.transaction(async (tx) => {
     // Lock the row and check again: if two runs raced (a double after()), the second one waits
     // here, then finds the ticket no longer pending and writes nothing.
     const [current] = await tx.select().from(tickets)

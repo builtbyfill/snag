@@ -61,8 +61,12 @@ const AuthEnv = z
     // Signs the session cookie only: rotating it logs everyone out and changes nothing else.
     SESSION_SECRET: secret(32),
     IP_HASH_SECRET: secret(32),
+    // A second access code for judges, separate from the developer's; empty or unset turns it off.
+    // It opens the same dashboard. Removing it stops new sign-ins; rotating SESSION_SECRET also
+    // ends the sessions it already opened.
+    DEMO_ACCESS_CODE: z.preprocess((v) => (v === '' ? undefined : v), secret(16).optional()),
     // https:// turns on the Secure cookie flag.
-    APP_URL: z.url().default('http://localhost:3000'),
+    APP_URL: z.url().default('http://localhost:3000').transform((url) => url.replace(/\/+$/, '')),
   })
   .superRefine((env, ctx) => {
     // One key, one purpose (spec.md > lib/auth): no two of the three secrets may be equal.
@@ -71,6 +75,9 @@ const AuthEnv = z
         if (env[later] === env[earlier]) ctx.addIssue({ code: 'custom', path: [later], message: `must differ from ${earlier}` });
       }
     });
+    for (const name of SECRETS) {
+      if (env.DEMO_ACCESS_CODE === env[name]) ctx.addIssue({ code: 'custom', path: ['DEMO_ACCESS_CODE'], message: `must differ from ${name}` });
+    }
   });
 export type AuthEnv = z.infer<typeof AuthEnv>;
 

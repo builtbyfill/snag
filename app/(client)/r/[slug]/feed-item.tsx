@@ -4,18 +4,19 @@ import { CheckIcon, LinkIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { TicketStatus } from "@/components/status-glyph";
 import { fill, type ClientCopy } from "@/lib/copy/client";
-import type { HistoryEntry } from "@/lib/reports/history";
+import type { FollowUp, HistoryEntry } from "@/lib/reports/history";
 import { loadScreenshot } from "@/lib/reports/screenshot-store";
 import { formatSentAt } from "@/lib/reports/sent-at";
 import { cn } from "@/lib/utils";
+import { FollowUpComposer } from "./follow-up-composer";
 
 const STEPS: TicketStatus[] = ["new", "in_progress", "done"];
 
 /**
- * One report's chat: her screenshot (framed, at most 280px, opens full size), her
- * sentence, when she sent it with a link back to it, and a subdued system row for each status it
- * has reached, GitHub-timeline style. Only Received has a time until the server records status
- * changes (deferred, Filip 2026-10-18).
+ * One report in the feed: her screenshot (framed, at most 280px, opens full size), her sentence,
+ * when she sent it with a link back to it, a subdued system row for each status it has reached
+ * (GitHub-timeline style; only Received has a time until the server records status changes),
+ * what she added later, and "Add to this report". The selected report carries the lime bar.
  */
 export function FeedItem({
   entry,
@@ -24,6 +25,9 @@ export function FeedItem({
   slug,
   fresh,
   freshFollowUpId = null,
+  selected = false,
+  onSelect,
+  onAdded,
 }: {
   entry: HistoryEntry;
   status: TicketStatus;
@@ -33,6 +37,9 @@ export function FeedItem({
   fresh: boolean;
   /** A follow-up added in this visit settles in; older ones are just there. */
   freshFollowUpId?: string | null;
+  selected?: boolean;
+  onSelect?: () => void;
+  onAdded?: (followUp: FollowUp) => void;
 }) {
   const fullSize = useFullSizeCopy(slug, entry.ticketId);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -62,9 +69,17 @@ export function FeedItem({
       id={`report-${entry.ticketId}`}
       tabIndex={-1}
       aria-label={fill(copy.report.sentOn, { date: sent })}
-      className={cn(fresh && "animate-settle")}
+      aria-current={selected ? "true" : undefined}
+      onFocus={onSelect}
+      onClick={onSelect}
+      className={cn(
+        "relative scroll-mt-4 outline-none",
+        selected &&
+          "before:absolute before:inset-y-0 before:-left-4 before:w-[3px] before:rounded-r-full before:bg-lime after:absolute after:inset-y-0 after:-left-[13px] after:w-px after:bg-ink md:before:-left-6 md:after:-left-[21px]",
+        fresh && "animate-settle",
+      )}
     >
-      {/* Screenshots are light: a raised frame keeps them from glaring on the dark page. */}
+      {/* A 1px frame on white sets the screenshot off the page. */}
       <figure className="w-fit max-w-full rounded-xl border border-line-medium bg-surface p-1">
         {fullSize ? (
           <button
@@ -123,6 +138,7 @@ export function FeedItem({
           <p className="mt-1.5 text-meta text-ink-muted tabular-nums">{fill(copy.followUp.added, { date: formatSentAt(followUp.sentAt) })}</p>
         </div>
       ))}
+      {onAdded && status !== "done" && <FollowUpComposer copy={copy} slug={slug} ticketId={entry.ticketId} onAdded={onAdded} />}
 
       {fullSize && (
         <dialog
@@ -138,7 +154,7 @@ export function FeedItem({
               type="button"
               onClick={() => dialogRef.current?.close()}
               aria-label={copy.report.closeScreenshot}
-              className="flex size-9 items-center justify-center rounded-md text-ink-secondary transition-colors duration-(--motion-fast) hover:bg-sunken hover:text-ink pointer-coarse:size-11"
+              className="flex size-9 items-center justify-center rounded-md text-ink-secondary transition-colors duration-(--motion-fast) hover:bg-hover hover:text-ink pointer-coarse:size-11"
             >
               <XIcon className="size-5" aria-hidden />
             </button>

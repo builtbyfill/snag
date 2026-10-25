@@ -102,7 +102,7 @@ export function Composer({
                   variant="ghost"
                   onClick={onRemove}
                   aria-label={c.remove}
-                  className="size-8 rounded-md text-ink-secondary hover:bg-sunken hover:text-ink pointer-coarse:size-11"
+                  className="size-8 rounded-md text-ink-secondary hover:bg-hover hover:text-ink pointer-coarse:size-11"
                 >
                   <XIcon className="size-4" aria-hidden />
                 </Button>
@@ -122,7 +122,7 @@ export function Composer({
               key={chip}
               type="button"
               onClick={() => onChip(chip)}
-              className="h-7 rounded-full border border-line-strong bg-surface px-3 text-meta text-ink transition-colors duration-(--motion-fast) hover:border-ink hover:bg-sunken active:translate-y-px pointer-coarse:h-11"
+              className="h-7 rounded-full border border-line-strong bg-surface px-3 text-meta text-ink transition-colors duration-(--motion-fast) hover:border-ink hover:bg-hover active:translate-y-px pointer-coarse:h-11"
             >
               {chip}
             </button>

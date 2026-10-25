@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleAlertIcon, PlusIcon } from "lucide-react";
-import { useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { addFollowUpAction } from "@/app/actions/report";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -11,30 +11,46 @@ import type { FollowUp } from "@/lib/reports/history";
 import type { ReportErrorCode } from "@/lib/reports/validate";
 
 /**
- * The bottom of a report's chat: add text to this report, or start a new report for something
- * else. Text only; a new screenshot belongs in a new report. Focus stays in the field after
- * sending, as in any messaging app.
+ * Under a report in the feed: "Add to this report" opens a small field for text only (a new
+ * screenshot belongs in a new report, which the page's composer sends). Focus stays in the field
+ * after sending, as in any messaging app.
  */
 export function FollowUpComposer({
   copy,
   slug,
   ticketId,
   onAdded,
-  onNewReport,
 }: {
   copy: ClientCopy;
   slug: string;
   ticketId: string;
   onAdded: (followUp: FollowUp) => void;
-  onNewReport: () => void;
 }) {
   const c = copy.followUp;
   const fieldId = useId();
   const problemId = useId();
   const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [problem, setProblem] = useState<ReportErrorCode | null>(null);
   const [sending, startSending] = useTransition();
+
+  useEffect(() => {
+    if (open) fieldRef.current?.focus();
+  }, [open]);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-3 flex min-h-8 items-center gap-1.5 rounded-md text-meta font-medium text-ink-secondary transition-colors duration-(--motion-fast) hover:text-ink pointer-coarse:min-h-11"
+      >
+        <PlusIcon className="size-3.5" aria-hidden />
+        {c.label}
+      </button>
+    );
+  }
 
   function send() {
     if (sending) return;
@@ -64,7 +80,7 @@ export function FollowUpComposer({
       noValidate
       aria-busy={sending}
       aria-label={c.label}
-      className="flex flex-col gap-2 border-t border-line bg-canvas px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-10"
+      className="mt-3 flex max-w-prose flex-col gap-2"
       onSubmit={(event) => {
         event.preventDefault();
         send();
@@ -115,18 +131,6 @@ export function FollowUpComposer({
           ) : (
             c.send
           )}
-        </Button>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-meta text-ink-muted">{c.otherProblem}</p>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onNewReport}
-          className="h-8 gap-1.5 rounded-lg border-line-strong bg-surface px-3 text-meta font-medium text-ink hover:bg-sunken pointer-coarse:h-11 dark:bg-surface dark:hover:bg-sunken"
-        >
-          <PlusIcon className="size-4" aria-hidden />
-          {copy.list.newReport}
         </Button>
       </div>
     </form>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reportLimitHit, REPORTS_PER_HOUR } from '@/lib/auth/rate-limit';
+import { GLOBAL_REPORTS_PER_HOUR, globalLimitHit, reportLimitHit, REPORTS_PER_HOUR } from '@/lib/auth/rate-limit';
 import { projects, tickets } from '@/lib/db/schema';
 import { setupTestDb } from '../helpers/db';
 
@@ -32,5 +32,16 @@ describe('reportLimitHit', () => {
   it('counts only the same IP hash', async () => {
     await seedTickets('other', 10, minutesAgo(1));
     expect(await reportLimitHit(db(), 'h3', NOW)).toBe(false);
+  });
+});
+
+describe('globalLimitHit', () => {
+  it('caps reports across every address and project at 60 an hour, ignoring older ones', async () => {
+    expect(GLOBAL_REPORTS_PER_HOUR).toBe(60);
+    await seedTickets('old', 5, minutesAgo(61));
+    for (let i = 0; i < 59; i++) await seedTickets(`h${i}`, 1, minutesAgo(1));
+    expect(await globalLimitHit(db(), NOW)).toBe(false);
+    await seedTickets('h-last', 1, minutesAgo(1));
+    expect(await globalLimitHit(db(), NOW)).toBe(true);
   });
 });

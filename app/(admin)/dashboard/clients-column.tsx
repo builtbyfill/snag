@@ -56,19 +56,19 @@ export function ClientsColumn({
         onChange={(event) => setSearch(event.target.value)}
         placeholder={c.search}
         autoComplete="off"
-        className="h-9 w-full rounded-lg border border-line-strong bg-sunken pr-2.5 pl-8 text-body text-ink placeholder:text-ink-faint pointer-coarse:h-11"
+        className="h-9 w-full rounded-lg border border-line-strong bg-surface pr-2.5 pl-8 text-body text-ink placeholder:text-ink-faint pointer-coarse:h-11"
       />
     </div>
   );
 
   return (
-    <section aria-labelledby={titleId} className={cn("min-h-0 flex-col overflow-hidden border-r border-line bg-pane", className)}>
+    <section aria-labelledby={titleId} data-list className={cn("min-h-0 flex-col overflow-hidden border-r border-line bg-pane", className)}>
       <div className="flex h-[52px] shrink-0 items-center gap-1 border-b border-line px-2">
         <button
           type="button"
           onClick={openNav}
           aria-label={adminCopy.nav.open}
-          className="flex size-9 items-center justify-center rounded-lg text-ink-secondary transition-colors hover:bg-sunken hover:text-ink pointer-coarse:size-11 xl:hidden"
+          className="flex size-9 items-center justify-center rounded-lg text-ink-secondary transition-colors hover:bg-hover hover:text-ink pointer-coarse:size-11 xl:hidden"
         >
           <MenuIcon className="size-5" aria-hidden />
         </button>
@@ -120,12 +120,18 @@ export function ClientsColumn({
 function ClientRow({ row, open, chosen }: { row: ClientRowView; open: boolean; chosen: boolean }) {
   const c = adminCopy.clients;
   // A client opened by default is only "open" where its chat shows beside the list (from 1024px).
-  const selected = open ? (chosen ? "bg-selected" : "hover:bg-sunken lg:bg-selected lg:hover:bg-selected") : "hover:bg-sunken";
+  // The open client: a white row with a 3px lime bar and a 1px ink line beside it. Lime alone is
+  // 1.2:1 on the light list; the ink line carries the selected state at 3:1 or more (16 here).
+  const selected = open
+    ? chosen
+      ? "bg-selected before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-l-full before:bg-lime after:absolute after:inset-y-2 after:left-[3px] after:w-px after:bg-ink"
+      : "hover:bg-hover lg:bg-selected lg:hover:bg-selected lg:before:absolute lg:before:inset-y-2 lg:before:left-0 lg:before:w-[3px] lg:before:rounded-l-full lg:before:bg-lime lg:after:absolute lg:after:inset-y-2 lg:after:left-[3px] lg:after:w-px lg:after:bg-ink"
+    : "hover:bg-hover";
   return (
     <Link
       href={row.href}
       aria-current={open ? "page" : undefined}
-      className={cn("group flex items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors", selected)}
+      className={cn("group relative flex items-start gap-2.5 rounded-lg px-2.5 py-2 transition-colors", selected)}
     >
       <span aria-hidden className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-sunken text-meta font-semibold text-ink-secondary">
         {row.initials}
@@ -140,14 +146,8 @@ function ClientRow({ row, open, chosen }: { row: ClientRowView; open: boolean; c
             {row.sentence ?? c.noReports}
           </span>
           {row.openCount > 0 && (
-            // The pill steps one surface away from whatever row colour it sits on, so it never vanishes.
-            <span
-              className={cn(
-                "flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-meta font-medium text-ink tabular-nums transition-colors",
-                open && chosen ? "bg-canvas" : "bg-selected group-hover:bg-canvas",
-                open && !chosen && "lg:bg-canvas",
-              )}
-            >
+            // Ink with white text: readable on the list, its hover and the white selected row.
+            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-chrome px-1.5 text-meta font-medium text-primary-foreground tabular-nums">
               <span aria-hidden>{row.openCount}</span>
               <span className="sr-only">, {fillIn(c.openCount, { count: row.openCount })}</span>
             </span>

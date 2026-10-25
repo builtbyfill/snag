@@ -30,7 +30,8 @@ const quote = (label: string, text: string) => `> ${label}: "${text.replace(/\r?
 
 /** The title, or for a ticket without one (pending, failed) the client's sentence on one line. */
 function headingTitle(t: MarkdownTicket): string {
-  if (t.title?.trim()) return t.title.trim();
+  const title = t.title?.replace(/\s+/g, ' ').trim();
+  if (title) return title;
   const line = t.clientSentence.replace(/\s+/g, ' ').trim();
   return line.length <= TITLE_MAX ? line : `${line.slice(0, TITLE_MAX - 1).trimEnd()}…`;
 }

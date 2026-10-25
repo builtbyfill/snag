@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_OFFICE_HOURS, officeStatus } from '@/lib/office-hours';
+import { ALWAYS_OPEN, DEFAULT_OFFICE_HOURS, officeStatus, readOfficeHours } from '@/lib/office-hours';
 
 // Europe/Sarajevo is UTC+2 in October (summer time), UTC+1 from 25 Oct 2026.
 const at = (iso: string) => new Date(iso);
@@ -30,5 +30,18 @@ describe('officeStatus (Mon–Fri 9–17 Europe/Sarajevo by default)', () => {
   it('uses the office time zone, not the server clock, across the clock change', () => {
     // Sunday 25 Oct 2026 23:30 UTC = Monday 26 Oct 00:30 in Sarajevo (UTC+1 by then) → today 9:00
     expect(officeStatus(at('2026-10-25T23:30:00Z'), DEFAULT_OFFICE_HOURS)).toEqual({ open: false, back: 'today', time: '9:00' });
+  });
+});
+
+describe('ALWAYS_OPEN (the demo projects) and stored office hours', () => {
+  it('is open on a Saturday night', () => {
+    expect(officeStatus(new Date('2026-10-31T22:30:00Z'), ALWAYS_OPEN)).toEqual({ open: true });
+    expect(officeStatus(new Date('2026-11-01T03:00:00Z'), ALWAYS_OPEN)).toEqual({ open: true });
+  });
+
+  it('reads stored hours, and falls back to the default when there are none or they are malformed', () => {
+    expect(readOfficeHours(ALWAYS_OPEN)).toEqual(ALWAYS_OPEN);
+    expect(readOfficeHours(null)).toEqual(DEFAULT_OFFICE_HOURS);
+    expect(readOfficeHours({ days: [8], open: '9', close: '17:00', timeZone: 'Europe/Sarajevo' })).toEqual(DEFAULT_OFFICE_HOURS);
   });
 });

@@ -17,6 +17,7 @@ export async function register() {
     if (marked > 0) console.warn(`Marked ${marked} interrupted extraction(s) as failed; Retry is available.`);
   } catch (error) {
     // A missing database must not stop the server from starting; the sweep runs again next start.
-    console.error("Start-up check for interrupted extractions failed", error);
+    const { describeError } = await import("@/lib/log");
+    console.error(`Start-up check for interrupted extractions failed: ${describeError(error)}`);
   }
 }

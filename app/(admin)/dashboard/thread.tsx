@@ -8,6 +8,7 @@ import { copyText } from "@/lib/clipboard";
 import { adminCopy, fillIn } from "@/lib/copy/admin";
 import type { StatusTab } from "@/lib/tickets/queries";
 import { cn } from "@/lib/utils";
+import { TYPING_OR_MENU } from "./escape-to";
 import { dashboardHref } from "./href";
 import { NewProjectDialog } from "./new-project-dialog";
 import { ReportMessage } from "./report-message";
@@ -19,9 +20,8 @@ const REFRESH_MS = 3000;
 const IDLE_REFRESH_MS = 10_000;
 const FLASH_MS = 2000;
 
-/** Keys belong to the field or dialog that has focus, never to the thread. */
-const typing = (target: EventTarget | null) =>
-  target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], dialog') !== null;
+/** Keys belong to the field, menu or dialog that has focus, never to the thread. */
+const typing = (target: EventTarget | null) => target instanceof HTMLElement && target.closest(TYPING_OR_MENU) !== null;
 
 /**
  * The open client's reports, oldest first, opened at the newest. j/k (or Down/Up on a card) move
@@ -108,32 +108,33 @@ export function Thread({
   useEffect(() => () => clearTimeout(flashTimer.current), []);
 
   const markdown = new Map(cards.map((card) => [card.id, card.markdown]));
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || typing(event.target)) return;
-      const list = Array.from(listRef.current?.querySelectorAll<HTMLElement>("[data-ticket-card]") ?? []);
-      if (list.length === 0) return;
-      const at = list.indexOf(document.activeElement as HTMLElement);
-      const focus = (index: number) => {
+  // Single-key shortcuts act only while focus is inside this thread (a card, or the thread after
+  // a click into it), never while a field, menu or dialog has it (WCAG 2.1.4).
+  function onKey(event: React.KeyboardEvent<HTMLElement>) {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || typing(event.target)) return;
+    const list = Array.from(listRef.current?.querySelectorAll<HTMLElement>("[data-ticket-card]") ?? []);
+    if (list.length === 0) return;
+    const at = list.indexOf(document.activeElement as HTMLElement);
+    const focus = (index: number) => {
+      event.preventDefault();
+      const card = list[Math.max(0, Math.min(list.length - 1, index))];
+      card.focus();
+      card.scrollIntoView({ block: "nearest" });
+    };
+    // With no card focused, j and k start from the newest card, where the thread opens.
+    if (event.key === "j" || (event.key === "ArrowDown" && at >= 0)) focus(at < 0 ? list.length - 1 : at + 1);
+    else if (event.key === "k" || (event.key === "ArrowUp" && at >= 0)) focus(at < 0 ? list.length - 1 : at - 1);
+    else if (event.key === "c" && at >= 0) {
+      const text = markdown.get(list[at].dataset.id ?? "");
+      if (text) {
         event.preventDefault();
-        const card = list[Math.max(0, Math.min(list.length - 1, index))];
-        card.focus();
-        card.scrollIntoView({ block: "nearest" });
-      };
-      // With no card focused, j and k start from the newest card, where the thread opens.
-      if (event.key === "j" || (event.key === "ArrowDown" && at >= 0)) focus(at < 0 ? list.length - 1 : at + 1);
-      else if (event.key === "k" || (event.key === "ArrowUp" && at >= 0)) focus(at < 0 ? list.length - 1 : at - 1);
-      else if (event.key === "c" && at >= 0) {
-        const text = markdown.get(list[at].dataset.id ?? "");
-        if (text) {
-          event.preventDefault();
-          copyMarkdown(text);
-        }
-      } else if (event.key === "Escape" && at >= 0) list[at].blur();
+        copyMarkdown(text);
+      }
+    } else if (event.key === "Escape" && at >= 0) {
+      // Leave the card but stay in the thread, so j and k keep working.
+      scrollRef.current?.focus({ preventScroll: true });
     }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+  }
 
   if (!client) {
     return (
@@ -150,13 +151,17 @@ export function Thread({
   }
 
   return (
-    <section aria-label={fillIn(c.label, { name: client.name })} className={cn("relative min-h-0 flex-col overflow-hidden bg-canvas", className)}>
+    <section
+      aria-label={fillIn(c.label, { name: client.name })}
+      onKeyDown={onKey}
+      className={cn("relative min-h-0 flex-col overflow-hidden bg-canvas", className)}
+    >
       <header className="shrink-0 border-b border-line">
         <div className="flex h-[52px] items-center gap-2 px-2 md:px-4">
           <Link
             href={backHref}
             aria-label={c.back}
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-secondary transition-colors hover:bg-sunken hover:text-ink pointer-coarse:size-11 lg:hidden"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-ink-secondary transition-colors hover:bg-hover hover:text-ink pointer-coarse:size-11 lg:hidden"
           >
             <ArrowLeftIcon className="size-5" aria-hidden />
           </Link>
@@ -168,7 +173,7 @@ export function Thread({
       </header>
 
       {/* relative: keeps the cards' screen-reader text inside this scroller, not the page's height. */}
-      <div ref={scrollRef} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div ref={scrollRef} tabIndex={-1} className="relative flex min-h-0 flex-1 flex-col overflow-y-auto outline-none">
         {cards.length === 0 ? (
           query.status === "all" ? (
             <ThreadEmpty title={adminCopy.empty.noReportsTitle} body={adminCopy.empty.noReportsBody}>
@@ -179,7 +184,7 @@ export function Thread({
             <ThreadEmpty title={adminCopy.empty.tab[query.status]}>
               <Link
                 href={dashboardHref("/dashboard", { ...query, status: "all" })}
-                className="flex h-9 items-center rounded-lg border border-line-strong px-3.5 text-body font-medium text-ink transition-colors hover:bg-sunken pointer-coarse:h-11"
+                className="flex h-9 items-center rounded-lg border border-line-strong px-3.5 text-body font-medium text-ink transition-colors hover:bg-hover pointer-coarse:h-11"
               >
                 {adminCopy.empty.showAll}
               </Link>
@@ -231,7 +236,8 @@ function StatusTabs({ query, counts, className }: { query: DashboardQuery; count
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-1.5 border-b-2 px-2.5 text-meta font-medium whitespace-nowrap transition-colors pointer-coarse:min-h-11",
-                  active ? "border-ink text-ink" : "border-transparent text-ink-muted hover:text-ink",
+                  // Active: a 2px lime underline with a 1px ink line on top of it, so the state reads at 3:1 or more.
+                  active ? "border-lime text-ink shadow-[inset_0_-1px_0_var(--ink)]" : "border-transparent text-ink-muted hover:text-ink",
                 )}
               >
                 {c.tabs[tab]}
@@ -257,7 +263,7 @@ function CopyLinkButton({ copied, onCopy, primary, className }: { copied: boolea
         "flex shrink-0 items-center gap-1.5 rounded-lg font-medium transition-colors",
         primary
           ? "h-9 bg-primary px-3.5 text-body font-semibold text-primary-foreground hover:bg-primary-hover pointer-coarse:h-11"
-          : "h-8 border border-line-strong px-3 text-meta text-ink hover:bg-sunken pointer-coarse:h-11",
+          : "h-8 border border-line-strong px-3 text-meta text-ink hover:bg-hover pointer-coarse:h-11",
         className,
       )}
     >
