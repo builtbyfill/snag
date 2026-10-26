@@ -9,7 +9,14 @@ The app picks Supabase Storage when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KE
 
 ## 1. Supabase
 
-Create the project at [supabase.com/dashboard](https://supabase.com/dashboard) and note its region. You need the database password you set here.
+Create the project at [supabase.com/dashboard](https://supabase.com/dashboard). On the form:
+
+- **Database password:** use **Generate a password** (or any password without `@ : / # ? %`) and keep it in your password manager. You need it for both connection strings.
+- **Region:** open **Need a specific region?** and pick one Vercel also has, e.g. Frankfurt (`eu-central-1`, Vercel `fra1`). Note it for the Vercel step.
+- **Security:** uncheck **Enable Data API** and **Automatically expose new tables**. Snag never uses the Data API. Leave **Enable automatic RLS** unchecked: the migrations turn RLS on for every table themselves.
+- **Advanced configuration:** leave the defaults.
+
+If the form already exists without these choices, step 3 below turns the Data API off afterwards.
 
 1. **Connection strings.** Click **Connect** at the top of the project, then:
    - **Transaction pooler** (port **6543**): this becomes `DATABASE_URL` on Vercel.
