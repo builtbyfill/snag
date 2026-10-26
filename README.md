@@ -12,7 +12,7 @@ Built for the Devpost hackathon *Build With AI: Basics* (October 2026) by a free
 
 ## Why I built this
 
-_Filip: 3–4 sentences, in your own words._
+I’m just starting out as a freelance developer, building and maintaining websites for small local businesses. When something breaks, I get “it doesn’t work” and a screenshot on WhatsApp, and the real work starts with ten questions. I wanted my clients to keep doing exactly what they already do, while I get a ticket I can act on. Snag is built for me and my own clients first, a closed setup rather than a public product.
 
 ## What it does
 
@@ -77,10 +77,6 @@ Fields the model cannot support stay empty rather than being guessed; the eval c
 - The model sometimes treats a user mistake as a high-priority bug. Eval case 001 (required fields left empty) and the Pinewood demo ticket about a departure date before the arrival were both rated High. The reference tickets record the correct priority; the prompt is unchanged for now.
 - Times are shown in the developer's zone (Europe/Sarajevo); per-client time zones are out of scope.
 - The live demo at https://snag-chi.vercel.app is shared: everyone with the judges' code sees the same demo data and the reports others send.
-
-## Why I built this
-
-I’m just starting out as a freelance developer, building and maintaining websites for small local businesses. When something breaks, I get “it doesn’t work” and a screenshot on WhatsApp, and the real work starts with ten questions. I wanted my clients to keep doing exactly what they already do, while I get a ticket I can act on. Snag is built for me and my own clients first, a closed setup rather than a public product.
 
 ## What's next
 
