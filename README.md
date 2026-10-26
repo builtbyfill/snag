@@ -2,9 +2,17 @@
 
 Snag turns a client's screenshot and one sentence into a structured bug ticket.
 
+**Live demo:** https://snag-chi.vercel.app · **Video (2 min):** https://youtu.be/1GSalfRjA2A
+
+![A ticket: what the screenshot shows, kept apart from what the AI suggested, with evidence or an empty field](docs/readme/ticket.png)
+
 A client sends one screenshot and one sentence through a private link. Snag saves it first, then a vision model turns it into a structured ticket for the developer: what the screenshot shows, kept apart from what the model inferred, with an evidence line under every inference or "not enough in the screenshot to tell". The developer works the tickets in a dashboard that reads like a chat per client, edits any field in place, and copies the ticket as GitHub-flavoured Markdown.
 
 Built for the Devpost hackathon *Build With AI: Basics* (October 2026) by a freelance developer who maintains apps for small local businesses, to replace "it doesn't work" messages on WhatsApp.
+
+## Why I built this
+
+_Filip: 3–4 sentences, in your own words._
 
 ## What it does
 
@@ -12,6 +20,27 @@ Built for the Devpost hackathon *Build With AI: Basics* (October 2026) by a free
 - **Extraction**: Claude reads the screenshot and the sentence and returns a ticket in a fixed shape. Observed fields (title, where, what's wrong, priority, tags) are separated from inferred ones (expected result, steps to reproduce), which carry evidence or stay empty. Low confidence or a missing "what's wrong" raises an **Ask client** flag instead of a guess.
 - **Dashboard** (`/dashboard`): one access code; Inbox and Done; clients grouped by recency; each client's reports as a chat with a ticket card under every message; status tabs; j/k/Enter/c keys. A failed reading can be retried.
 - **Ticket detail**: the screenshot and the verbatim sentence beside the fields. Every field saves when you leave it; a field that no longer reads as the model wrote it is marked **Edited**, with "AI wrote: …" on hover. Copy as Markdown produces a GitHub issue body.
+
+![The dashboard: one chat per client, a ticket card under every report](docs/readme/dashboard.png)
+
+![The client page on a phone: no account, a screenshot and one sentence](docs/readme/client-phone.png)
+
+## Built with
+
+- **Claude Code** with the **Devpost Learn skill pack** for the whole build: scope → PRD → spec → checklist → small, test-first slices. The planning documents are in `devpost/`.
+- **Claude Sonnet** for extraction, with a Zod-validated structured output.
+- **Next.js 16**, TypeScript, Tailwind CSS v4, shadcn/ui.
+- **PostgreSQL** with Drizzle ORM.
+- **Docker Compose** locally; **Vercel** and **Supabase** (Postgres and a private storage bucket) in production.
+- **Playwright** to record the demo clips; **ElevenLabs** for the video voiceover, from a script I wrote.
+
+## How it was tested
+
+- 407 automated tests (unit and database-backed), plus typecheck, lint and a production build, all passing.
+- Every migration checked against Postgres 15 and 17 (the versions Supabase runs) as well as the local Postgres 18.
+- A live run end to end: a report sent from a 390px-wide phone page was saved, extracted and shown in the open dashboard, on the Compose setup and on the Vercel deployment.
+- A review pass against what hackathon judges look for (no auth wall, realistic demo data, first-seconds clarity), with every finding fixed or listed in `docs/review.md`.
+- The extraction eval: see the next section for what it does and doesn't prove yet.
 
 ## Run it
 
@@ -43,10 +72,19 @@ Fields the model cannot support stay empty rather than being guessed; the eval c
 
 - One developer, one access code, plus an optional second code for judges (`DEMO_ACCESS_CODE`). No accounts.
 - One screenshot per report. Follow-ups are text only.
-- The login limit and the report limit count per address and live in memory or in the database. The address comes from `x-forwarded-for`, so the app must sit behind a reverse proxy that sets it (`APP_BIND=127.0.0.1` on a server). On top of that, the app starts at most 60 extractions an hour across all links.
+- The login, report and follow-up limits count per address and live in the database, so they hold across serverless instances. The address comes from `x-forwarded-for`, so the app must sit behind a reverse proxy that sets it (`APP_BIND=127.0.0.1` on a server). On top of that, the app starts at most 60 extractions an hour across all links.
 - Real client reports may be messier than the eval set: blurry photos, the wrong screen, mixed languages.
-- The model sometimes treats a user mistake as a high-priority bug. Eval case 001 (required fields left empty) and demo ticket SN-45 (a departure date before the arrival) were both rated High. The reference tickets record the correct priority; the prompt is unchanged for now.
-- Not deployed publicly yet; the demo video runs against this Docker setup.
+- The model sometimes treats a user mistake as a high-priority bug. Eval case 001 (required fields left empty) and the Pinewood demo ticket about a departure date before the arrival were both rated High. The reference tickets record the correct priority; the prompt is unchanged for now.
+- Times are shown in the developer's zone (Europe/Sarajevo); per-client time zones are out of scope.
+- The live demo at https://snag-chi.vercel.app is shared: everyone with the judges' code sees the same demo data and the reports others send.
+
+## Why I built this
+
+I’m just starting out as a freelance developer, building and maintaining websites for small local businesses. When something breaks, I get “it doesn’t work” and a screenshot on WhatsApp, and the real work starts with ten questions. I wanted my clients to keep doing exactly what they already do, while I get a ticket I can act on. Snag is built for me and my own clients first, a closed setup rather than a public product.
+
+## What's next
+
+First, real data: fill the eval set with sentences from non-technical people role-playing clients, and publish the acceptance numbers. Then what my own clients will need: more than one screenshot per report, a way to reply to the client, and creating GitHub issues directly. Longer term, multi-user, so Snag can grow into a tool for freelancers and small software agencies.
 
 ## Where things are
 
