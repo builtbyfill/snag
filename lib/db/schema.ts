@@ -15,6 +15,9 @@ export const extractionResult = pgEnum('extraction_result', ['succeeded', 'faile
 // restarting while it ran (interrupted_by_restart). Lets the dashboard tell the two apart.
 export const failedReason = pgEnum('failed_reason', ['extraction_error', 'interrupted_by_restart']);
 
+// Every table has row level security on and no policies (Vercel deploy, 2026-10-26): Supabase's
+// Data API (PostgREST) then reaches nothing. The app connects as the tables' owner, which RLS
+// doesn't apply to, so the app, Compose and the tests are unaffected.
 export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -29,7 +32,7 @@ export const projects = pgTable('projects', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex('projects_slug_idx').on(t.slug),
-]);
+]).enableRLS();
 
 export const tickets = pgTable('tickets', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -71,7 +74,7 @@ export const tickets = pgTable('tickets', {
   index('tickets_project_created_idx').on(t.projectId, t.createdAt.desc()),
   index('tickets_ip_hash_created_idx').on(t.reporterIpHash, t.createdAt),
   uniqueIndex('tickets_number_idx').on(t.number),
-]);
+]).enableRLS();
 
 export const attachments = pgTable('attachments', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -84,7 +87,7 @@ export const attachments = pgTable('attachments', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex('attachments_ticket_idx').on(t.ticketId),
-]);
+]).enableRLS();
 
 export const extractions = pgTable('extractions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -101,7 +104,7 @@ export const extractions = pgTable('extractions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   uniqueIndex('extractions_ticket_attempt_idx').on(t.ticketId, t.attempt),
-]);
+]).enableRLS();
 
 // Text a client adds to their own report later, from the device that sent it (Filip, 2026-10-18).
 // Text only: a new screenshot is a new report. Shown in the client's chat and on the dashboard.
@@ -114,7 +117,7 @@ export const followUps = pgTable('follow_ups', {
 }, (t) => [
   index('follow_ups_ticket_created_idx').on(t.ticketId, t.createdAt),
   index('follow_ups_ip_hash_created_idx').on(t.reporterIpHash, t.createdAt),
-]);
+]).enableRLS();
 
 // A status or priority change on a ticket, for the thread's change rows (Filip, 2026-10-18).
 // Written only by updateTicketField; replaces the deferred status-change-time columns.
@@ -129,4 +132,15 @@ export const ticketEvents = pgTable('ticket_events', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index('ticket_events_ticket_created_idx').on(t.ticketId, t.createdAt),
-]);
+]).enableRLS();
+
+// One failed dashboard login (Vercel, 2026-10-26): in the database, not in memory, so the limit
+// holds across instances. Only the HMAC of the address is kept; rows older than the window are
+// deleted whenever a new failure is recorded (lib/auth/rate-limit.ts).
+export const loginFailures = pgTable('login_failures', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ipHash: varchar('ip_hash', { length: 64 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index('login_failures_ip_hash_created_idx').on(t.ipHash, t.createdAt),
+]).enableRLS();

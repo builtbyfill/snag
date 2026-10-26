@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
-import { and, count, eq, gt } from 'drizzle-orm';
+import { and, count, eq, gt, lte } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
-import { tickets } from '@/lib/db/schema';
+import { loginFailures, tickets } from '@/lib/db/schema';
 
 export const REPORTS_PER_HOUR = 10;
 /** Across every project and address: the most extractions the app will start in an hour. */
@@ -16,8 +16,9 @@ export function hashIp(ip: string, secret: string): string {
 }
 
 /**
- * First x-forwarded-for value. Behind Caddy that is the real client address; locally Next fills
- * it from the socket unless the client sent its own (accepted: spec.md > Security Checklist).
+ * First x-forwarded-for value. Behind Caddy, and on Vercel (which replaces whatever the client
+ * sent), that is the real client address; locally Next fills it from the socket unless the
+ * client sent its own (accepted: spec.md > Security Checklist).
  */
 export function clientIp(headers: Headers): string {
   return headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
@@ -50,36 +51,45 @@ export async function globalLimitHit(db: Db, now: Date = new Date()): Promise<bo
 export const LOGIN_FAILURES_ALLOWED = 5;
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
+export type LoginLimiter = {
+  isLocked(ip: string, now?: number): Promise<boolean>;
+  /** Records one failure; true when this one locks the address. */
+  recordFailure(ip: string, now?: number): Promise<boolean>;
+  clear(ip: string): Promise<void>;
+};
+
 /**
- * Failed logins per address, in memory: at most LOGIN_FAILURES_ALLOWED in any LOGIN_WINDOW_MS.
- * One app instance (spec.md), so one Map is the whole truth; a restart forgets it.
+ * Failed logins per address, at most `allowed` in any `windowMs`, kept in login_failures so every
+ * app instance (Vercel runs several) sees the same count. Stores the HMAC of the address only.
  */
-export function createLoginLimiter(allowed = LOGIN_FAILURES_ALLOWED, windowMs = LOGIN_WINDOW_MS) {
-  const failures = new Map<string, number[]>();
-  const recent = (ip: string, now: number) => (failures.get(ip) ?? []).filter((t) => t > now - windowMs);
+export function createDbLoginLimiter(
+  db: Db,
+  ipHashSecret: string,
+  allowed = LOGIN_FAILURES_ALLOWED,
+  windowMs = LOGIN_WINDOW_MS,
+): LoginLimiter {
+  const since = (now: number) => new Date(now - windowMs);
+  const recent = async (ipHash: string, now: number) => {
+    const [row] = await db
+      .select({ n: count() })
+      .from(loginFailures)
+      .where(and(eq(loginFailures.ipHash, ipHash), gt(loginFailures.createdAt, since(now))));
+    return row.n;
+  };
 
   return {
-    isLocked(ip: string, now: number = Date.now()): boolean {
-      return recent(ip, now).length >= allowed;
+    async isLocked(ip, now = Date.now()) {
+      return (await recent(hashIp(ip, ipHashSecret), now)) >= allowed;
     },
-    /** Records one failure; true when this one locks the address. */
-    recordFailure(ip: string, now: number = Date.now()): boolean {
-      // Drop addresses with nothing left in the window, so the Map can't grow without bound.
-      for (const [key, times] of failures) if (times.every((t) => t <= now - windowMs)) failures.delete(key);
-      const times = [...recent(ip, now), now];
-      failures.set(ip, times);
-      return times.length === allowed;
+    async recordFailure(ip, now = Date.now()) {
+      const ipHash = hashIp(ip, ipHashSecret);
+      // Drop every address's expired failures first, so the table can't grow without bound.
+      await db.delete(loginFailures).where(lte(loginFailures.createdAt, since(now)));
+      await db.insert(loginFailures).values({ ipHash, createdAt: new Date(now) });
+      return (await recent(ipHash, now)) === allowed;
     },
-    clear(ip: string): void {
-      failures.delete(ip);
-    },
-    size(): number {
-      return failures.size;
+    async clear(ip) {
+      await db.delete(loginFailures).where(eq(loginFailures.ipHash, hashIp(ip, ipHashSecret)));
     },
   };
 }
-export type LoginLimiter = ReturnType<typeof createLoginLimiter>;
-
-// Kept on globalThis so a dev-server reload doesn't forget the failures.
-const cache = globalThis as unknown as { snagLoginLimiter?: LoginLimiter };
-export const loginLimiter: LoginLimiter = (cache.snagLoginLimiter ??= createLoginLimiter());

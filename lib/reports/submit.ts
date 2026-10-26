@@ -66,9 +66,11 @@ export async function submitReport(deps: SubmitDeps, input: SubmitInput): Promis
 
   const ticketId = randomUUID();
   const storageKey = `${project.id}/${ticketId}.${format.ext}`;
+  let stored = false;
   try {
     // File first: if the disk is full, nothing reaches the database.
     await deps.storage.put(storageKey, bytes, format.mimeType);
+    stored = true;
     await deps.db.transaction(async (tx) => {
       await tx.insert(tickets).values({ id: ticketId, projectId: project.id, clientSentence: sentence.data, reporterIpHash: ipHash });
       await tx.insert(attachments).values({
@@ -77,6 +79,8 @@ export async function submitReport(deps: SubmitDeps, input: SubmitInput): Promis
     });
   } catch (error) {
     console.error(`submitReport: saving failed: ${describeError(error)}`);
+    // The file has no ticket to belong to; remove it (best effort) so storage doesn't collect orphans.
+    if (stored) await deps.storage.delete(storageKey).catch(() => {});
     return fail('server', 'form');
   }
   return { ok: true, ticketId };

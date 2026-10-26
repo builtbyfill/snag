@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { planUpload, previewSize, thumbSize, UPLOAD_MAX_EDGE, UPLOAD_MAX_BYTES } from '@/lib/reports/prepare-image';
+import { MAX_BYTES } from '@/lib/reports/validate';
 
 const MB = 1024 * 1024;
 
@@ -29,7 +30,7 @@ describe('planUpload (what the browser does with a chosen image before sending)'
   });
 
   it('stays under the server limit with room for form overhead', () => {
-    expect(UPLOAD_MAX_BYTES).toBeLessThan(5 * MB);
+    expect(UPLOAD_MAX_BYTES).toBeLessThanOrEqual(MAX_BYTES); // never above what the server takes
   });
 });
 

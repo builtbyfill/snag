@@ -3,7 +3,7 @@ import sharp from 'sharp';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { attachments, extractions, projects, tickets } from '@/lib/db/schema';
 import { ProviderError } from '@/lib/extraction/provider';
-import { failInterruptedExtractions, INTERRUPTED_ERROR, runExtraction } from '@/lib/extraction/run';
+import { failInterruptedExtractions, INTERRUPTED_ERROR, runExtraction, STALE_PENDING_MS, sweepAgeMs } from '@/lib/extraction/run';
 import { MapStorage } from '@/lib/storage';
 import { FakeProvider, reply } from '../fakes/fake-provider';
 import { setupTestDb } from '../helpers/db';
@@ -204,6 +204,22 @@ describe('failInterruptedExtractions (runs once when the server starts)', () => 
     }
     expect((await ticket(finished)).extractionState).toBe('extracted');
     expect(await ticket(failed)).toMatchObject({ extractionError: '400 bad request', failedReason: 'extraction_error' });
+  });
+
+  it('on Vercel, leaves recent pending tickets to the instance running them', async () => {
+    const now = new Date('2026-10-18T12:00:00Z');
+    const running = await savedReport({ updatedAt: new Date(now.getTime() - 60_000) });
+    const stale = await savedReport({ updatedAt: new Date(now.getTime() - 7 * 60_000) });
+
+    expect(await failInterruptedExtractions(db(), now, STALE_PENDING_MS)).toBe(1);
+    expect((await ticket(running)).extractionState).toBe('pending');
+    expect(await ticket(stale)).toMatchObject({ extractionState: 'extraction_failed', failedReason: 'interrupted_by_restart' });
+  });
+
+  it('sweeps by age only on Vercel: 6 minutes there, everything pending elsewhere', () => {
+    expect(STALE_PENDING_MS).toBe(6 * 60 * 1000);
+    expect(sweepAgeMs({})).toBe(0);
+    expect(sweepAgeMs({ VERCEL: '1' })).toBe(STALE_PENDING_MS);
   });
 
   it('starts nothing itself: a Retry (back to pending, then runExtraction) clears the reason on success', async () => {

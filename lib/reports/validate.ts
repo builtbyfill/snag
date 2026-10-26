@@ -18,7 +18,9 @@ export const REPORT_ERROR_CODES = [
 ] as const;
 export type ReportErrorCode = (typeof REPORT_ERROR_CODES)[number];
 
-export const MAX_BYTES = 5 * 1024 * 1024;
+// 4 MB: under Vercel's 4.5 MB request body limit with room for the form, so an oversized file
+// gets this app's own "too large" message rather than the platform's error.
+export const MAX_BYTES = 4 * 1024 * 1024;
 export const MAX_EDGE_PX = 8000; // the API's hard limit per image edge
 export const SENTENCE_MIN = 10;
 export const SENTENCE_MAX = 1000;

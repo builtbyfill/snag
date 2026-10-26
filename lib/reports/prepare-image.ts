@@ -1,11 +1,11 @@
 // Prepares a chosen screenshot in the browser before it is sent. A phone photo of a clinic
 // monitor is often 8–50 MB; rejecting it would lose the report, so the browser shrinks it
 // instead and only gives up when the image can't be read at all. The server still enforces
-// its own limits (5 MB, 8000 px, real format) regardless of what arrives.
+// its own limits (4 MB, 8000 px, real format) regardless of what arrives.
 import { ACCEPTED_TYPES } from './validate';
 
 export const UPLOAD_MAX_EDGE = 2560; // the model's high-resolution limit; more pixels add nothing
-export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024; // under the server's 5 MB with room to spare
+export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024; // at most the server's MAX_BYTES (4 MB)
 export const THUMB_EDGE = 240;
 export const PREVIEW_EDGE = 1600; // the full-size copy kept on this device: sharp on any phone or laptop
 const JPEG_QUALITY = 0.85;

@@ -4,7 +4,8 @@ import { createDb, type Db } from '@/lib/db/client';
 
 /**
  * Use in a DB-backed test file: gives a Drizzle instance on snag_test and empties every table
- * before each test (TRUNCATE … CASCADE follows the foreign keys from projects down).
+ * before each test (TRUNCATE … CASCADE follows the foreign keys from projects down; login_failures
+ * stands alone).
  */
 export function setupTestDb(): () => Db {
   const url = inject('testDatabaseUrl');
@@ -13,7 +14,7 @@ export function setupTestDb(): () => Db {
   beforeEach(async () => {
     if (!url) throw new Error(`Test database unavailable: ${inject('testDatabaseError')}`);
     connection ??= createDb(url);
-    await connection.db.execute(sql`TRUNCATE projects CASCADE`);
+    await connection.db.execute(sql`TRUNCATE projects, login_failures CASCADE`);
   });
 
   afterAll(async () => {

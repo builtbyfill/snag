@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireSession } from "@/lib/auth/session";
 import { adminCopy, fillIn } from "@/lib/copy/admin";
 import { getDb } from "@/lib/db/client";
+import { sweepStaleExtractions } from "@/lib/extraction/run";
 import { readAuthEnv } from "@/lib/env";
 import { ticketToMarkdown } from "@/lib/tickets/markdown";
 import { getClient, hasProjects, listClients, listThread, type ThreadTicket } from "@/lib/tickets/queries";
@@ -17,6 +18,9 @@ const THUMB_MAX_WIDTH = 280;
 const THUMB_MAX_HEIGHT = 240;
 
 export const metadata: Metadata = { title: `${adminCopy.shell.pageTitle} · Snag` };
+// Retry runs the extraction after the response, inside this page's function: up to two model
+// calls of 60 s each (lib/extraction/policy.ts), so the Vercel limit is 300 s, not 60.
+export const maxDuration = 300;
 
 // Thumbnails fit inside 280 × 240. The exact size is set before the image loads, so the thread's
 // height is final at once and it can open scrolled to the newest report.
@@ -65,6 +69,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   await requireSession();
   const q = readQuery(await searchParams);
   const db = getDb();
+  await sweepStaleExtractions(db); // Vercel only
   const now = new Date();
 
   const clients = await listClients(db, q.view);

@@ -9,6 +9,10 @@ import { readOfficeHours } from "@/lib/office-hours";
 import { listDemoReports } from "@/lib/reports/demo";
 import { ClientPortal } from "./client-portal";
 
+// Sending a report starts its extraction after the response, inside this page's function: up to
+// two model calls of 60 s each (lib/extraction/policy.ts), so the Vercel limit is 300 s, not 60.
+export const maxDuration = 300;
+
 async function projectBySlug(slug: string) {
   const [project] = await getDb()
     .select({ name: projects.name, demo: projects.demo, officeHours: projects.officeHours })

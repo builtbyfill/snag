@@ -8,6 +8,9 @@ import { attachments } from '@/lib/db/schema';
 import type { Storage } from '@/lib/storage';
 
 /** Thumbnail widths: 320 for the 280px frame, 640 for the same frame on 2x screens. */
+/** How long a full-size signed URL (Supabase) stays valid. */
+export const SIGNED_URL_SECONDS = 600;
+
 const WIDTHS = new Set(['320', '640']);
 const EXTENSION: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
 
@@ -39,6 +42,12 @@ export async function ticketImageResponse(
   if (!row) return notFound();
 
   try {
+    if (request.w === null) {
+      // Supabase: the browser fetches the full size from the private bucket itself, so the bytes
+      // don't pass through a function. The URL is short-lived and the redirect is never cached.
+      const url = await deps.storage.signedUrl(row.storageKey, SIGNED_URL_SECONDS);
+      if (url) return new Response(null, { status: 302, headers: { Location: url, 'Cache-Control': 'private, no-store' } });
+    }
     const bytes = await deps.storage.get(row.storageKey);
     if (request.w === null) return image(bytes, row.mimeType, EXTENSION[row.mimeType] ?? 'png', 'private, no-store');
     // Width only, so a tall phone screenshot stays readable; rotate() applies the photo's EXIF turn.
@@ -50,6 +59,6 @@ export async function ticketImageResponse(
       .toBuffer();
     return image(thumb, 'image/jpeg', 'jpg', 'private, max-age=300');
   } catch {
-    return notFound(); // missing or unreadable file
+    return notFound(); // missing or unreadable file, or no signed URL
   }
 }

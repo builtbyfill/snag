@@ -1,8 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getDb } from "@/lib/db/client";
-import { readReportEnv } from "@/lib/env";
 import { isDemoTicket } from "@/lib/reports/demo";
-import { createLocalStorage } from "@/lib/storage";
+import { getStorage } from "@/lib/storage";
 import { notFound, ticketImageResponse } from "@/lib/tickets/image";
 
 // Screenshots of a demo project's reports, for its client page (no sign-in: the page is public).
@@ -13,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const db = getDb();
   if (!(await isDemoTicket(db, slug, ticketId))) return notFound();
   return ticketImageResponse(
-    { db, storage: createLocalStorage(readReportEnv().UPLOAD_DIR), signedIn: true },
+    { db, storage: getStorage(), signedIn: true },
     { ticketId, w: request.nextUrl.searchParams.get("w") },
   );
 }

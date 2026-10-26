@@ -6,14 +6,17 @@ export async function register() {
 
   // Fail fast: a missing, short or placeholder secret, or two equal secrets, stops the server here
   // with the variable's name (never its value).
-  const { readAuthEnv } = await import("@/lib/env");
+  const { readAuthEnv, readStorageEnv } = await import("@/lib/env");
   readAuthEnv();
+  // Same for storage: half a Supabase config, or local disk on Vercel, stops here too.
+  readStorageEnv();
 
   try {
     const { getDb } = await import("@/lib/db/client");
-    const { failInterruptedExtractions } = await import("@/lib/extraction/run");
-    // Anything still pending lost its extraction with the previous process (one instance at a time).
-    const marked = await failInterruptedExtractions(getDb());
+    const { failInterruptedExtractions, sweepAgeMs } = await import("@/lib/extraction/run");
+    // Compose: anything still pending lost its extraction with the previous process (one
+    // instance at a time). Vercel: only tickets older than any function can run (see run.ts).
+    const marked = await failInterruptedExtractions(getDb(), new Date(), sweepAgeMs());
     if (marked > 0) console.warn(`Marked ${marked} interrupted extraction(s) as failed; Retry is available.`);
   } catch (error) {
     // A missing database must not stop the server from starting; the sweep runs again next start.

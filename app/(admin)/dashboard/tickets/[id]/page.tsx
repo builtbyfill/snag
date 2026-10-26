@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/auth/session";
 import { adminCopy, fillIn } from "@/lib/copy/admin";
 import { getDb } from "@/lib/db/client";
+import { sweepStaleExtractions } from "@/lib/extraction/run";
 import { confidenceText } from "@/lib/tickets/confidence";
 import { ticketToMarkdown } from "@/lib/tickets/markdown";
 import { getTicket } from "@/lib/tickets/queries";
@@ -18,6 +19,9 @@ import { TicketActions } from "./ticket-actions";
 import { TicketFields, type FieldsView } from "./ticket-fields";
 
 export const metadata: Metadata = { title: `${adminCopy.ticket.pageTitle} · Snag` };
+// Retry runs the extraction after the response, inside this page's function: up to two model
+// calls of 60 s each (lib/extraction/policy.ts), so the Vercel limit is 300 s, not 60.
+export const maxDuration = 300;
 
 const THUMB_MAX_WIDTH = 320;
 const THUMB_MAX_HEIGHT = 480;
@@ -36,6 +40,7 @@ export default async function TicketPage({
 }) {
   await requireSession();
   const { id } = await params;
+  await sweepStaleExtractions(getDb()); // Vercel only: this page polls while a ticket is pending
   const ticket = await getTicket(getDb(), id);
   if (!ticket) notFound();
 

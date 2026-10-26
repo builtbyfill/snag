@@ -38,3 +38,5 @@ next-env.d.ts
 /eval/capture/rules.local.mjs
 # Demo screenshots: copies of the eval captures, kept local like them (scripts/demo-images.ts)
 /seed/demo/images/
+# Demo video clips (local recordings)
+/docs/video/

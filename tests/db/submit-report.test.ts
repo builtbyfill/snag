@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { hashIp } from '@/lib/auth/rate-limit';
 import { attachments, projects, tickets } from '@/lib/db/schema';
 import { submitReport } from '@/lib/reports/submit';
@@ -14,6 +14,8 @@ const SENTENCE = 'Kliknula sam Sačuvaj na terminu i ništa se nije desilo.';
 
 let storage: MapStorage;
 let projectId: string;
+
+afterEach(() => vi.restoreAllMocks());
 
 beforeEach(async () => {
   storage = new MapStorage();
@@ -129,9 +131,17 @@ describe('submitReport: rejections write nothing', () => {
     expect(await submit({ file: file(Buffer.from('not an image')) })).toMatchObject({ error: 'invalidType' });
   });
 
-  it('a file over 5 MB', async () => {
-    const big = Buffer.alloc(5 * 1024 * 1024 + 1, 1);
+  it('a file over 4 MB (under the 4.5 MB Vercel body limit, so this message always shows)', async () => {
+    const big = Buffer.alloc(4 * 1024 * 1024 + 1, 1);
     expect(await submit({ file: file(big) })).toEqual({ ok: false, error: 'tooLarge', field: 'screenshot' });
+  });
+
+  it('a file of exactly 4 MB passes the size check', async () => {
+    const png = await image(10, 10).png().toBuffer();
+    // A valid PNG padded to the limit: sharp reads the header and ignores trailing bytes.
+    const padded = Buffer.concat([png, Buffer.alloc(4 * 1024 * 1024 - png.length)]);
+    expect(padded.length).toBe(4 * 1024 * 1024);
+    expect(await submit({ file: file(padded) })).toMatchObject({ ok: true });
   });
 
   it('an image wider or taller than 8000 px', async () => {
@@ -148,8 +158,21 @@ describe('submitReport: rejections write nothing', () => {
     expect((await submit({ file: file(png), ip: '192.168.1.99' })).ok).toBe(true);
   });
 
+  it('removes the uploaded screenshot when the database write fails', async () => {
+    const png = await image(10, 10).png().toBuffer();
+    vi.spyOn(db(), 'transaction').mockRejectedValueOnce(new Error('db down'));
+    const result = await submit({ file: file(png) });
+    expect(result).toEqual({ ok: false, error: 'server', field: 'form' });
+    expect(storage.files.size).toBe(0);
+  });
+
   it('a storage failure saves no ticket', async () => {
-    const broken: Storage = { put: async () => { throw new Error('ENOSPC: no space left on device'); }, get: async () => Buffer.alloc(0) };
+    const broken: Storage = {
+      put: async () => { throw new Error('ENOSPC: no space left on device'); },
+      get: async () => Buffer.alloc(0),
+      delete: async () => {},
+      signedUrl: async () => null,
+    };
     const result = await submit({ file: file(await image(10, 10).png().toBuffer()), storage: broken });
     expect(result).toEqual({ ok: false, error: 'server', field: 'form' });
     expect((await db().select().from(tickets)).length).toBe(0);

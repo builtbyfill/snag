@@ -49,9 +49,9 @@ describe('readDatabaseEnv', () => {
 describe('readReportEnv', () => {
   const SECRET = 'a'.repeat(44);
 
-  it('defaults the uploads folder', async () => {
+  it('holds only the IP hash secret (the uploads folder moved to readStorageEnv)', async () => {
     const { readReportEnv } = await import('@/lib/env');
-    expect(readReportEnv({ IP_HASH_SECRET: SECRET })).toEqual({ IP_HASH_SECRET: SECRET, UPLOAD_DIR: './.uploads' });
+    expect(readReportEnv({ IP_HASH_SECRET: SECRET, UPLOAD_DIR: '/data/uploads' })).toEqual({ IP_HASH_SECRET: SECRET });
   });
 
   it('rejects a short or placeholder IP_HASH_SECRET', async () => {

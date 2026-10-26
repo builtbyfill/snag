@@ -29,7 +29,7 @@ The reporter is the non-technical client, and the input is deliberately tiny. Th
 
 ## Capabilities and Constraints
 
-- Report: one screenshot (PNG, JPG or WebP, under 5 MB) plus one sentence of at least 10 characters. No account, no sign-up. Rate-limited per device.
+- Report: one screenshot (PNG, JPG or WebP, up to 4 MB; the browser shrinks larger ones) plus one sentence of at least 10 characters. No account, no sign-up. Rate-limited per device.
 - Save first, extract second: the client's confirmation never waits on AI, and the client never sees an AI error or spinner.
 - The client sees only reports sent from their own device, with status only (received, in progress, done).
 - Developer: one shared access code, no user accounts. Edits every field, sets status, copies a ticket as GitHub-flavoured Markdown, retries a failed extraction.

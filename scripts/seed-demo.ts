@@ -3,9 +3,10 @@
 // Idempotent; never touches eval/ or the Clinic booking seed.
 import { existsSync, writeFileSync } from 'node:fs';
 import { createDb } from '@/lib/db/client';
+import { migrationUrl } from '@/lib/db/connection';
 import { readDatabaseEnv, readExtractionEnv } from '@/lib/env';
 import { runExtraction } from '@/lib/extraction/run';
-import { createLocalStorage } from '@/lib/storage';
+import { getStorage } from '@/lib/storage';
 import { collectDemoResults, DEMO_PROJECTS, demoTicketId, readDemoResults, seedDemoTickets } from './seed-demo-data';
 
 async function main() {
@@ -15,8 +16,9 @@ async function main() {
   if (!existsSync('seed/demo/images')) {
     throw new Error('seed/demo/images is missing. Build it from the eval captures with `npx tsx scripts/demo-images.ts` first.');
   }
-  const { db, pool } = createDb(readDatabaseEnv().DATABASE_URL);
-  const storage = createLocalStorage(process.env.UPLOAD_DIR ?? './.uploads');
+  // DIRECT_URL (Supabase's session pooler) when set, like migrations; else DATABASE_URL.
+  const { db, pool } = createDb(readDatabaseEnv({ DATABASE_URL: migrationUrl() }).DATABASE_URL);
+  const storage = getStorage(); // the Supabase bucket when its two variables are set
   try {
     const results = readDemoResults();
     if (!results && !extract) throw new Error('seed/demo/results.json is missing. Run with --extract once (uses the API key).');

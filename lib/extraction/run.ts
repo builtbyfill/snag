@@ -1,7 +1,8 @@
 // The glue between extractTicket (pure: no database, no files) and the saved report.
 // spec.md > Modules and Seams > lib/extraction/run.ts; spec.md > Save-Then-Extract.
-import { and, eq, max } from 'drizzle-orm';
+import { and, eq, lt, max } from 'drizzle-orm';
 import type { Db } from '@/lib/db/client';
+import { describeError } from '@/lib/log';
 import { attachments, extractions, tickets } from '@/lib/db/schema';
 import type { Storage } from '@/lib/storage';
 import type { ImageMime } from './image';
@@ -126,22 +127,48 @@ function fillEmpty(current: typeof tickets.$inferSelect, output: ExtractionOutpu
 export const INTERRUPTED_ERROR = 'Extraction interrupted by a restart. Retry when ready.';
 
 /**
- * Run once when the server starts (instrumentation.ts), before it takes requests. Extraction
- * runs inside the server process (after()), so a ticket that is still `pending` at that moment
- * lost its extraction when the previous process stopped: it is orphaned by definition, however
- * recent. Each one becomes `extraction_failed` with `failed_reason = 'interrupted_by_restart'`
- * so the dashboard can tell it apart from a model failure. Returns how many were marked.
+ * On Vercel a pending ticket older than this lost its extraction: the function that ran it is
+ * stopped after maxDuration (300 s, set on the pages whose actions start one), plus a minute.
+ */
+export const STALE_PENDING_MS = 6 * 60 * 1000;
+
+/** How old a pending ticket must be before the sweep marks it: 0 (all of them) unless on Vercel. */
+export function sweepAgeMs(source: Record<string, string | undefined> = process.env): number {
+  return source.VERCEL === '1' ? STALE_PENDING_MS : 0;
+}
+
+/**
+ * Marks orphaned `pending` tickets as `extraction_failed` with `failed_reason =
+ * 'interrupted_by_restart'`, so the dashboard can tell them apart from a model failure and offer
+ * Retry. Returns how many were marked.
  *
- * Assumes exactly one app process at a time: Compose stops the old container before it starts
- * the new one. A second instance starting next to a running one would mark that one's live
- * extractions; scaling out needs a job queue instead (spec.md > Save-Then-Extract).
+ * Compose (olderThanMs 0): runs once when the server starts (instrumentation.ts), before it takes
+ * requests. Extraction runs inside the server process (after()), and Compose runs exactly one app
+ * container, stopping the old one before starting the new, so anything still pending at that
+ * moment lost its extraction, however recent.
+ * Vercel (olderThanMs STALE_PENDING_MS): many instances run at once and each start runs this, so
+ * only tickets pending longer than any function can live are marked; the dashboard pages run it
+ * too, since cold starts aren't guaranteed. Age is `updated_at`, which submit and Retry set.
  * Nothing is re-extracted here: Retry stays a manual action, so a report that crashes the
  * server can't put it into a restart loop.
  */
-export async function failInterruptedExtractions(db: Db, now: Date = new Date()): Promise<number> {
+export async function failInterruptedExtractions(db: Db, now: Date = new Date(), olderThanMs = 0): Promise<number> {
+  const stale = olderThanMs > 0 ? lt(tickets.updatedAt, new Date(now.getTime() - olderThanMs)) : undefined;
   const marked = await db.update(tickets)
     .set({ extractionState: 'extraction_failed', extractionError: INTERRUPTED_ERROR, failedReason: 'interrupted_by_restart', updatedAt: now })
-    .where(eq(tickets.extractionState, 'pending'))
+    .where(and(eq(tickets.extractionState, 'pending'), stale))
     .returning({ id: tickets.id });
   return marked.length;
+}
+
+/** Vercel only: the dashboard pages' sweep of stale pending tickets. Never throws; the page still loads. */
+export async function sweepStaleExtractions(db: Db): Promise<void> {
+  const age = sweepAgeMs();
+  if (age === 0) return; // Compose: the start-up sweep already covers it
+  try {
+    const marked = await failInterruptedExtractions(db, new Date(), age);
+    if (marked > 0) console.warn(`Marked ${marked} interrupted extraction(s) as failed; Retry is available.`);
+  } catch (error) {
+    console.error(`Sweep of interrupted extractions failed: ${describeError(error)}`);
+  }
 }

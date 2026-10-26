@@ -31,6 +31,8 @@ The demo adds four fictional clients with 16 reports taken from synthetic screen
 
 The demo screenshots are not in the repository: like the eval images, they stay on the developer's machine. `npx tsx scripts/demo-images.ts` builds `seed/demo/images/` from the eval captures. Run the seed through Compose as above, so the screenshots land in the app container's uploads volume; a seed run on the host writes to `./.uploads`, which the container doesn't see.
 
+To deploy on Vercel with Supabase (Postgres and screenshot storage) instead, see [docs/deploy.md](docs/deploy.md); Compose keeps working as above.
+
 For development on the host: `npm install`, `docker compose up -d db`, `npm run db:migrate`, `npm run dev`. Tests: `npm test` (rebuilds a `snag_test` database from the migrations on every run).
 
 ## How honest the extraction is

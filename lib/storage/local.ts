@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { Storage } from './index';
 
@@ -22,6 +22,15 @@ export class LocalDiskStorage implements Storage {
 
   async get(key: string): Promise<Buffer> {
     return readFile(this.resolve(key));
+  }
+
+  async delete(key: string): Promise<void> {
+    await rm(this.resolve(key), { force: true });
+  }
+
+  /** Never: the image route reads the file and sends it itself. */
+  async signedUrl(): Promise<string | null> {
+    return null;
   }
 
   // Belt and braces: keys never contain client input, but a key must still land inside the root.

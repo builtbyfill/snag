@@ -43,13 +43,46 @@ const secret = (min: number) =>
 const ReportEnv = z.object({
   // HMAC key for reporter IP hashes only (one key, one purpose).
   IP_HASH_SECRET: secret(32),
-  UPLOAD_DIR: z.string().min(1).default('./.uploads'),
 });
 export type ReportEnv = z.infer<typeof ReportEnv>;
 
-/** Variables the public report path needs: IP hashing and the uploads folder. */
+/** Variables the public report path needs: IP hashing. */
 export function readReportEnv(source: Source = process.env): ReportEnv {
   return parse(ReportEnv, source);
+}
+
+const unsetIfEmpty = (v: unknown) => (v === '' ? undefined : v);
+
+const StorageVars = z
+  .object({
+    UPLOAD_DIR: z.string().min(1).default('./.uploads'),
+    // Both set: screenshots go to the private Supabase bucket. Server-only, never NEXT_PUBLIC_.
+    SUPABASE_URL: z.preprocess(unsetIfEmpty, z.url({ protocol: /^https$/, error: 'must be an https:// URL' }).optional()),
+    SUPABASE_SERVICE_ROLE_KEY: z.preprocess(unsetIfEmpty, notPlaceholder(z.string()).optional()),
+    // Vercel sets VERCEL=1; its filesystem doesn't outlive a request, so local disk is refused there.
+    VERCEL: z.string().optional(),
+  })
+  .superRefine((env, ctx) => {
+    if (env.SUPABASE_URL && !env.SUPABASE_SERVICE_ROLE_KEY) {
+      ctx.addIssue({ code: 'custom', path: ['SUPABASE_SERVICE_ROLE_KEY'], message: 'is required when SUPABASE_URL is set' });
+    }
+    if (env.SUPABASE_SERVICE_ROLE_KEY && !env.SUPABASE_URL) {
+      ctx.addIssue({ code: 'custom', path: ['SUPABASE_URL'], message: 'is required when SUPABASE_SERVICE_ROLE_KEY is set' });
+    }
+    if (env.VERCEL === '1' && !env.SUPABASE_URL && !env.SUPABASE_SERVICE_ROLE_KEY) {
+      ctx.addIssue({ code: 'custom', path: ['SUPABASE_URL'], message: 'is required on Vercel (no persistent disk)' });
+    }
+  });
+
+export type StorageEnv = { kind: 'local'; dir: string } | { kind: 'supabase'; url: string; key: string };
+
+/** Where screenshots live: Supabase Storage when both its variables are set, else UPLOAD_DIR on disk. */
+export function readStorageEnv(source: Source = process.env): StorageEnv {
+  const env = parse(StorageVars, source);
+  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { kind: 'supabase', url: env.SUPABASE_URL, key: env.SUPABASE_SERVICE_ROLE_KEY };
+  }
+  return { kind: 'local', dir: env.UPLOAD_DIR };
 }
 
 const SECRETS = ['ADMIN_SECRET', 'SESSION_SECRET', 'IP_HASH_SECRET'] as const;

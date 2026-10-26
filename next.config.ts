@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Docker: `next build` also writes .next/standalone, a server.js with only the files it imports.
-  output: "standalone",
+  // Vercel (VERCEL=1 during its build) packages the app itself.
+  output: process.env.VERCEL ? undefined : "standalone",
 
   // cacheComponents is off on purpose: every Snag screen is per request (database, session),
   // and notFound() must return a real 404 for unknown report links.
@@ -20,8 +21,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // 5 MB screenshot + multipart overhead. The action itself still rejects anything over 5 MB.
-      bodySizeLimit: "6mb",
+      // 4 MB screenshot + multipart overhead, matching Vercel's 4.5 MB body limit. The action
+      // itself rejects anything over 4 MB (lib/reports/validate.ts > MAX_BYTES).
+      bodySizeLimit: "4.5mb",
     },
   },
   async headers() {

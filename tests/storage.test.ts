@@ -2,7 +2,7 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createLocalStorage, MapStorage } from '@/lib/storage';
+import { createLocalStorage, MapStorage, type Storage } from '@/lib/storage';
 
 let dir: string;
 beforeEach(async () => { dir = await mkdtemp(path.join(tmpdir(), 'snag-storage-')); });
@@ -36,6 +36,22 @@ describe('LocalDiskStorage', () => {
   it('fails to read a key that was never written', async () => {
     await expect(createLocalStorage(dir).get('p/missing.png')).rejects.toThrow();
   });
+
+  it('deletes a file, and deleting a missing key is not an error', async () => {
+    const storage = createLocalStorage(dir);
+    await storage.put('p/t.png', Buffer.from('x'), 'image/png');
+    await storage.delete('p/t.png');
+    await expect(storage.get('p/t.png')).rejects.toThrow();
+    await expect(storage.delete('p/never.png')).resolves.toBeUndefined();
+  });
+
+  it('refuses delete outside the uploads folder', async () => {
+    await expect(createLocalStorage(dir).delete('../outside.png')).rejects.toThrow(/outside/);
+  });
+
+  it('has no signed URL: the app serves the bytes itself', async () => {
+    expect(await createLocalStorage(dir).signedUrl('p/t.png', 600)).toBeNull();
+  });
 });
 
 describe('MapStorage', () => {
@@ -44,5 +60,14 @@ describe('MapStorage', () => {
     await storage.put('a/b.png', Buffer.from('z'), 'image/png');
     expect((await storage.get('a/b.png')).toString()).toBe('z');
     await expect(storage.get('a/c.png')).rejects.toThrow();
+  });
+
+  it('deletes and has no signed URL', async () => {
+    const storage = new MapStorage();
+    await storage.put('a/b.png', Buffer.from('z'), 'image/png');
+    await storage.delete('a/b.png');
+    await storage.delete('a/never.png');
+    expect(storage.files.size).toBe(0);
+    expect(await (storage as Storage).signedUrl('a/b.png', 600)).toBeNull();
   });
 });

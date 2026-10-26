@@ -9,12 +9,12 @@ export type LoginResult = { ok: true; token: string } | { ok: false; error: Logi
  * One login attempt. A locked address isn't checked at all, so the sixth try fails even with the
  * right code and the answer reveals nothing. Success clears this address only.
  */
-export function attemptLogin(
+export async function attemptLogin(
   input: unknown,
   ctx: { env: Pick<AuthEnv, 'ADMIN_SECRET' | 'SESSION_SECRET' | 'DEMO_ACCESS_CODE'>; ip: string; limiter: LoginLimiter; now?: number },
-): LoginResult {
+): Promise<LoginResult> {
   const now = ctx.now ?? Date.now();
-  if (ctx.limiter.isLocked(ctx.ip, now)) return { ok: false, error: 'locked' };
+  if (await ctx.limiter.isLocked(ctx.ip, now)) return { ok: false, error: 'locked' };
 
   // The developer's code or, when set, the judges' demo code. Both are always compared, so the
   // time taken doesn't tell which one matched.
@@ -22,10 +22,10 @@ export function attemptLogin(
   const matches = typeof input === 'string' && codes.map((code) => accessCodeMatches(input, code)).includes(true);
   if (!matches) {
     // The log says that it happened, not who: no address, no attempted code.
-    if (ctx.limiter.recordFailure(ctx.ip, now)) console.warn('Login locked for one address after 5 failed attempts in 15 minutes.');
+    if (await ctx.limiter.recordFailure(ctx.ip, now)) console.warn('Login locked for one address after 5 failed attempts in 15 minutes.');
     return { ok: false, error: 'mismatch' };
   }
 
-  ctx.limiter.clear(ctx.ip);
+  await ctx.limiter.clear(ctx.ip);
   return { ok: true, token: createSessionToken(ctx.env, now) };
 }

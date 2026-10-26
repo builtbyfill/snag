@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkScreenshot, checkSentence, checkSentenceDetail } from '@/lib/reports/validate';
+import { checkScreenshot, checkSentence, checkSentenceDetail, MAX_BYTES } from '@/lib/reports/validate';
 
 // The checks return error codes; the page turns codes into words in the client's language.
 describe('checkSentence (browser and server use the same rule)', () => {
@@ -17,9 +17,9 @@ describe('checkSentence (browser and server use the same rule)', () => {
 });
 
 describe('checkScreenshot (browser pre-check; the server sniffs the real format)', () => {
-  it('accepts png, jpeg and webp up to 5 MB', () => {
+  it('accepts png, jpeg and webp up to 4 MB', () => {
     for (const type of ['image/png', 'image/jpeg', 'image/webp']) {
-      expect(checkScreenshot({ type, size: 5 * 1024 * 1024 })).toBeNull();
+      expect(checkScreenshot({ type, size: 4 * 1024 * 1024 })).toBeNull();
     }
   });
 
@@ -28,8 +28,10 @@ describe('checkScreenshot (browser pre-check; the server sniffs the real format)
     expect(checkScreenshot({ type: 'image/heic', size: 10 })).toBe('invalidType');
   });
 
-  it('rejects files over 5 MB', () => {
-    expect(checkScreenshot({ type: 'image/png', size: 5 * 1024 * 1024 + 1 })).toBe('tooLarge');
+  it('rejects files over 4 MB', () => {
+    expect(MAX_BYTES).toBe(4 * 1024 * 1024);
+    expect(checkScreenshot({ type: 'image/png', size: MAX_BYTES + 1 })).toBe('tooLarge');
+    expect(checkScreenshot({ type: 'image/png', size: MAX_BYTES })).toBeNull();
   });
 });
 

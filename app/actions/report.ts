@@ -11,7 +11,7 @@ import { addFollowUp, type FollowUpResult } from "@/lib/reports/follow-up";
 import { getReportStatuses, type ReportStatus } from "@/lib/reports/statuses";
 import { submitReport } from "@/lib/reports/submit";
 import type { ReportErrorCode } from "@/lib/reports/validate";
-import { createLocalStorage } from "@/lib/storage";
+import { getStorage } from "@/lib/storage";
 
 export type ReportActionResult =
   | { ok: true; ticketId: string }
@@ -21,7 +21,7 @@ export type ReportActionResult =
 export async function submitReportAction(slug: string, formData: FormData): Promise<ReportActionResult> {
   try {
     const env = readReportEnv();
-    const storage = createLocalStorage(env.UPLOAD_DIR);
+    const storage = getStorage();
     const result = await submitReport(
       { db: getDb(), storage, ipHashSecret: env.IP_HASH_SECRET },
       {

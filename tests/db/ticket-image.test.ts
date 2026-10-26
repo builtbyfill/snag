@@ -1,7 +1,7 @@
 import sharp from 'sharp';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { attachments, projects, tickets } from '@/lib/db/schema';
-import { MapStorage } from '@/lib/storage';
+import { MapStorage, type Storage } from '@/lib/storage';
 import { ticketImageResponse } from '@/lib/tickets/image';
 import { setupTestDb } from '../helpers/db';
 
@@ -27,6 +27,49 @@ const serve = (over: { signedIn?: boolean; ticketId?: string; w?: string | null 
     { db: db(), storage, signedIn: over.signedIn ?? true },
     { ticketId: over.ticketId ?? ticketId, w: 'w' in over ? (over.w ?? null) : null },
   );
+
+/** Storage that hands out signed URLs, as the Supabase adapter does; bytes live in a MapStorage. */
+function withSignedUrls(from: MapStorage) {
+  const signed = vi.fn(async (key: string, seconds: number) => `https://abc.supabase.co/storage/v1/object/sign/screenshots/${key}?token=t&s=${seconds}`);
+  const storage: Storage = { put: (...a) => from.put(...a), get: (k) => from.get(k), delete: (k) => from.delete(k), signedUrl: signed };
+  return { storage, signed };
+}
+
+describe('ticketImageResponse with signed URLs (Supabase)', () => {
+  let signedStorage: ReturnType<typeof withSignedUrls>;
+  beforeEach(() => {
+    signedStorage = withSignedUrls(storage);
+  });
+  const serveSigned = (over: { signedIn?: boolean; w?: string | null } = {}) =>
+    ticketImageResponse({ db: db(), storage: signedStorage.storage, signedIn: over.signedIn ?? true }, { ticketId, w: over.w ?? null });
+
+  it('redirects the full-size image to a 10-minute signed URL, never cached', async () => {
+    const res = await serveSigned();
+    const [key] = [...storage.files.keys()];
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe(`https://abc.supabase.co/storage/v1/object/sign/screenshots/${key}?token=t&s=600`);
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+    expect(signedStorage.signed).toHaveBeenCalledWith(key, 600);
+  });
+
+  it('still serves thumbnails as bytes', async () => {
+    const res = await serveSigned({ w: '320' });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/jpeg');
+    expect(signedStorage.signed).not.toHaveBeenCalled();
+  });
+
+  it('a refused request never asks for a signed URL', async () => {
+    const res = await serveSigned({ signedIn: false });
+    expect(res.status).toBe(404);
+    expect(signedStorage.signed).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 when the signed URL cannot be made', async () => {
+    signedStorage.signed.mockRejectedValueOnce(new Error('Supabase Storage signedUrl failed: 404 Object not found'));
+    expect((await serveSigned()).status).toBe(404);
+  });
+});
 
 describe('ticketImageResponse', () => {
   it('serves the original with its stored type and private, no-store headers', async () => {
